@@ -31,7 +31,7 @@
             margin-bottom: 10px;
         }
         #ip-address, #browser-info {
-            font-size: 1.5em; /* Немного уменьшил для двух строк */
+            font-size: 1.5em;
             color: #007bff;
             font-weight: bold;
         }
@@ -64,12 +64,45 @@
             }
         }
 
-        function getBrowserInfo() {
+        async function getBrowserInfo() {
+            const browserInfoElement = document.getElementById('browser-info');
+
+            if (navigator.userAgentData) { // Проверяем поддержку User-Agent Client Hints
+                try {
+                    const uaData = await navigator.userAgentData.getHighEntropyValues(["fullVersionList"]);
+                    let browserName = "Неизвестен";
+                    let browserVersion = "Неизвестна";
+
+                    // Ищем основной бренд браузера (Chrome, Edge, Opera)
+                    const brands = uaData.fullVersionList || uaData.brands; // Fallback for older spec
+                    if (brands && brands.length > 0) {
+                        for (const brand of brands) {
+                            if (!brand.brand.includes("Not")) { // Игнорируем "Not A(Brand"
+                                browserName = brand.brand;
+                                browserVersion = brand.version;
+                                break; // Берем первый подходящий бренд
+                            }
+                        }
+                    }
+
+                    browserInfoElement.textContent = `${browserName} (Версия: ${browserVersion})`;
+                } catch (error) {
+                    console.error('Ошибка при получении информации о браузере через User-Agent Client Hints:', error);
+                    // Если Client Hints не сработал или произошла ошибка, пробуем старый метод
+                    getBrowserInfoLegacy();
+                }
+            } else {
+                // Fallback для браузеров, не поддерживающих User-Agent Client Hints (Firefox, Safari, старые версии)
+                getBrowserInfoLegacy();
+            }
+            browserInfoElement.classList.remove('loading');
+        }
+
+        function getBrowserInfoLegacy() {
             const userAgent = navigator.userAgent;
-            let browserName = "Неизвестен";
+            let browserName = "Неизвестен (старый метод)";
             let browserVersion = "Неизвестна";
 
-            // Проверка для основных браузеров
             if (userAgent.includes("Opera") || userAgent.includes("Opr")) {
                 browserName = "Opera";
                 browserVersion = userAgent.match(/(Opera|Opr)\/([0-9.]+)/)?.[2] || "Неизвестна";
@@ -85,13 +118,12 @@
             } else if (userAgent.includes("Firefox")) {
                 browserName = "Mozilla Firefox";
                 browserVersion = userAgent.match(/Firefox\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) { // Для старых IE
+            } else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) {
                 browserName = "Internet Explorer";
                 browserVersion = userAgent.match(/(MSIE |rv:)([0-9.]+)/)?.[2] || "Неизвестна";
             }
 
             document.getElementById('browser-info').textContent = `${browserName} (Версия: ${browserVersion})`;
-            document.getElementById('browser-info').classList.remove('loading');
         }
 
         // Вызываем обе функции
