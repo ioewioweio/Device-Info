@@ -236,8 +236,7 @@
             if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip)) {
                 return true;
             }
-            // Проверка на IPv6 (более сложная, но базовая)
-            // Это регулярное выражение более надежно, чем предыдущее
+            // Проверка на IPv6 (более надежное регулярное выражение)
             if (/^(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:))|(([0-9a-fA-F]{1,4}:){6}(:[0-9a-fA-F]{1,4}|((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)))|(([0-9a-fA-F]{1,4}:){5}(((:[0-9a-fA-F]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)))|(([0-9a-fA-F]{1,4}:){4}(((:[0-9a-fA-F]{1,4}){1,3})|((:[0-9a-fA-F]{1,4})?:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){3}(((:[0-9a-fA-F]{1,4}){1,4})|((:[0-9a-fA-F]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){2}(((:[0-9a-fA-F]{1,4}){1,5})|((:[0-9a-fA-F]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){1}(((:[0-9a-fA-F]{1,4}){1,6})|((:[0-9a-fA-F]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(::((([0-9a-fA-F]{1,4}:){1,7})|((:[0-9a-fA-F]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))$/.test(ip)) {
                 return true;
             }
@@ -250,52 +249,87 @@
             const ipv6AddressElement = document.getElementById('ipv6-address');
             const locationInfoElement = document.getElementById('location-info');
 
-            try {
-                // Попытка получить IPv4 и местоположение через ip-api.com
-                const ipv4Response = await fetch('https://ip-api.com/json');
-                const ipv4Data = await ipv4Response.json();
+            let ipv4Success = false;
+            let locationSuccess = false;
 
-                if (ipv4Data.status === 'success') {
-                    ipv4AddressElement.textContent = ipv4Data.query;
-                    locationInfoElement.textContent = `${ipv4Data.country}, ${ipv4Data.city}`;
+            // Попытка получить IPv4 и местоположение через freeipapi.com
+            try {
+                const freeIpApiResponse = await fetch('https://freeipapi.com/api/json/');
+                if (freeIpApiResponse.ok) { // Проверяем успешность ответа (статус 200-299)
+                    const freeIpApiData = await freeIpApiResponse.json();
+
+                    if (freeIpApiData && freeIpApiData.ipAddress) {
+                        ipv4AddressElement.textContent = freeIpApiData.ipAddress;
+                        ipv4Success = true;
+                        if (freeIpApiData.countryName && freeIpApiData.cityName) {
+                            locationInfoElement.textContent = `${freeIpApiData.countryName}, ${freeIpApiData.cityName}`;
+                            locationSuccess = true;
+                        } else {
+                            locationInfoElement.textContent = 'Местоположение не найдено (FreeIPAPI).';
+                            locationInfoElement.classList.add('warning');
+                        }
+                    } else {
+                        console.warn('freeipapi.com не вернул полные данные, пробуем запасной вариант для IPv4.');
+                    }
                 } else {
-                    // Фолбэк: если ip-api.com не сработал, попробуем ipify.org для IPv4
-                    console.warn('ip-api.com не ответил, используем фолбэк для IPv4.');
-                    try {
-                        const fallbackIpv4Response = await fetch('https://api.ipify.org?format=json');
-                        const fallbackIpv4Data = await fallbackIpv4Response.json();
-                        if (fallbackIpv4Data.ip) {
-                            ipv4AddressElement.textContent = fallbackIpv4Data.ip;
+                    console.warn(`freeipapi.com вернул статус ${freeIpApiResponse.status}, пробуем запасной вариант для IPv4.`);
+                }
+            } catch (error) {
+                console.error('Ошибка при запросе к freeipapi.com:', error);
+                // Продолжаем, чтобы попробовать ipify.org
+            }
+
+            // Если IPv4 не получен успешно через freeipapi.com, используем api.ipify.org
+            if (!ipv4Success) {
+                try {
+                    const ipifyResponse = await fetch('https://api.ipify.org?format=json');
+                    if (ipifyResponse.ok) {
+                        const ipifyData = await ipifyResponse.json();
+                        if (ipifyData.ip) {
+                            ipv4AddressElement.textContent = ipifyData.ip;
+                            // Местоположение по ipify.org не получить, нужна другая база
                             locationInfoElement.textContent = 'Местоположение неизвестно (API-ошибка).';
+                            locationInfoElement.classList.add('warning');
+                            ipv4Success = true; // Отметим, что IPv4 все же получен
                         } else {
                             ipv4AddressElement.textContent = 'Не удалось получить IPv4 (API-ошибка).';
                             locationInfoElement.textContent = 'Не удалось получить местоположение (API-ошибка).';
+                            ipv4AddressElement.classList.add('error');
+                            locationInfoElement.classList.add('error');
                         }
-                    } catch (fallbackError) {
-                        console.error('Ошибка фолбэк API для IPv4:', fallbackError);
-                        ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
-                        locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
+                    } else {
+                         console.error(`api.ipify.org вернул статус ${ipifyResponse.status}.`);
+                         ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
+                         locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
+                         ipv4AddressElement.classList.add('error');
+                         locationInfoElement.classList.add('error');
                     }
+                } catch (error) {
+                    console.error('Ошибка при запросе к api.ipify.org:', error);
+                    ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
+                    locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
+                    ipv4AddressElement.classList.add('error');
+                    locationInfoElement.classList.add('error');
                 }
+            }
 
-                // Получение IPv6 через api64.ipify.org
+            // Получение IPv6 через api64.ipify.org
+            try {
                 const ipv6Response = await fetch('https://api64.ipify.org?format=json');
-                const ipv6Data = await ipv6Response.json();
-                if (ipv6Data.ip) {
-                    ipv6AddressElement.textContent = ipv6Data.ip;
+                if (ipv6Response.ok) {
+                    const ipv6Data = await ipv6Response.json();
+                    if (ipv6Data.ip) {
+                        ipv6AddressElement.textContent = ipv6Data.ip;
+                    } else {
+                        ipv6AddressElement.textContent = 'IPv6 не обнаружен или API недоступен.';
+                    }
                 } else {
-                    ipv6AddressElement.textContent = 'IPv6 не обнаружен или API недоступен.';
+                    console.error(`api64.ipify.org вернул статус ${ipv6Response.status}.`);
+                    ipv6AddressElement.textContent = 'Ошибка API при получении IPv6.';
                 }
-
-            } catch (overallError) {
-                console.error('Общая ошибка при получении IP/местоположения:', overallError);
-                // Устанавливаем статус ошибки, если что-то пошло не так на первом этапе
-                ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
-                locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
+            } catch (error) {
+                console.error('Ошибка сети при получении IPv6:', error);
                 ipv6AddressElement.textContent = 'Ошибка сети при получении IPv6.';
-
-                ipv4AddressElement.classList.add('error');
-                locationInfoElement.classList.add('error');
                 ipv6AddressElement.classList.add('error');
             } finally {
                 ipv4AddressElement.classList.remove('loading');
@@ -372,8 +406,6 @@
         }
 
         // --- Браузер и ОС ---
-        // Учитывая, что используем Chromium, navigator.userAgentData будет приоритетным.
-        // Оставим старый метод как запасной, хотя он и не будет часто использоваться.
         async function getBrowserAndOSInfo() {
             const browserInfoElement = document.getElementById('browser-info');
             const osInfoElement = document.getElementById('os-info');
@@ -388,8 +420,9 @@
                     const brands = uaData.fullVersionList || uaData.brands;
 
                     if (brands && brands.length > 0) {
+                        // Ищем первый бренд, который не является "Not A;Brand"
                         for (const brand of brands) {
-                            if (!brand.brand.includes("Not")) { // Отфильтровываем "Not A;Brand"
+                            if (!brand.brand.includes("Not")) {
                                 browserName = brand.brand;
                                 browserVersion = brand.version;
                                 break;
@@ -409,8 +442,8 @@
                 getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
             }
 
-            browserInfoElement.textContent = `${browserName} (Версия: ${browserVersion})`;
-            osInfoElement.textContent = `${osName}${osVersion}`;
+            browserInfoElement.textContent = `${browserName}${browserVersion !== "Неизвестна" ? ` (Версия: ${browserVersion})` : ""}`;
+            osInfoElement.textContent = `${osName}${osVersion ? ' ' + osVersion : ''}`;
             browserInfoElement.classList.remove('loading');
             osInfoElement.classList.remove('loading');
         }
@@ -543,7 +576,7 @@
         // --- Вызов всех функций ---
         document.addEventListener('DOMContentLoaded', () => {
             getIpAndLocation();
-            getDnsInfo(); // По-прежнему не изменится
+            getDnsInfo();
             getWebRTCInfo();
             getUserAgent();
             getBrowserAndOSInfo();
