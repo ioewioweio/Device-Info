@@ -1,43 +1,63 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Информация об устройстве</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/ua-parser-js@1.0.37/dist/ua-parser.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой IP-адрес</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #ip-address {
+            font-size: 2em;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .loading {
+            color: #888;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-  <div class="bg-white p-8 rounded-lg shadow-lg text-center">
-    <h1 class="text-2xl font-bold mb-4">Информация об устройстве</h1>
-    <p><strong>Ваш IP-адрес:</strong> <span id="ip-address">Загрузка...</span></p>
-    <p><strong>Браузер:</strong> <span id="browser-info">Загрузка...</span></p>
-  </div>
+<body>
+    <div class="container">
+        <h1>Ваш IP-адрес:</h1>
+        <p id="ip-address" class="loading">Загрузка...</p>
+    </div>
 
-  <script>
-    async function fetchIP() {
-      try {
-        const response = await fetch('http://ip-api.com/json/');
-        const data = await response.json();
-        document.getElementById('ip-address').textContent = data.query;
-      } catch (error) {
-        document.getElementById('ip-address').textContent = 'Ошибка';
-        console.error('Error fetching IP:', error);
-      }
-    }
+    <script>
+        async function getIpAddress() {
+            try {
+                // Используем бесплатный API для получения IP-адреса
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                document.getElementById('ip-address').textContent = data.ip;
+                document.getElementById('ip-address').classList.remove('loading');
+            } catch (error) {
+                console.error('Ошибка при получении IP-адреса:', error);
+                document.getElementById('ip-address').textContent = 'Не удалось получить IP-адрес.';
+                document.getElementById('ip-address').style.color = 'red';
+                document.getElementById('ip-address').classList.remove('loading');
+            }
+        }
 
-    function getBrowserInfo() {
-      const parser = new UAParser();
-      const result = parser.getResult();
-      const browserName = result.browser.name;
-      const browserVersion = result.browser.version;
-      document.getElementById('browser-info').textContent = `${browserName} ${browserVersion}`;
-    }
-
-    window.onload = () => {
-      fetchIP();
-      getBrowserInfo();
-    };
-  </script>
+        getIpAddress();
+    </script>
 </body>
 </html>
