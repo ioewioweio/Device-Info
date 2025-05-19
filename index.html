@@ -4,99 +4,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Информация о вас</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             display: flex;
+            flex-direction: column; /* Изменено на столбец */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f0f0f0;
+            background-color: #e9ecef; /* Более мягкий фон */
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            line-height: 1.6;
         }
-        .container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        .header {
+            width: 100%;
+            max-width: 900px;
             text-align: center;
-            max-width: 600px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #343a40;
+            font-size: 2.8em; /* Более крупный заголовок */
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Адаптивная сетка */
+            gap: 25px; /* Увеличенный отступ между карточками */
+            max-width: 900px;
             width: 100%;
         }
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 1.5em;
+        .info-card {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 12px; /* Более скругленные углы */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* Более выраженная тень */
+            text-align: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer; /* Добавлено для индикации кликабельности */
+            position: relative; /* Для позиционирования сообщения о копировании */
+            overflow: hidden; /* Чтобы текст не выходил за границы при копировании */
         }
-        p {
-            font-size: 1.1em;
-            color: #555;
-            margin-bottom: 5px;
+        .info-card:hover {
+            transform: translateY(-5px); /* Легкий эффект при наведении */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        .info-card h2 {
+            color: #495057;
+            font-size: 1.5em; /* Заголовки в карточках */
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e9ecef; /* Разделитель */
+            padding-bottom: 10px;
         }
         .info-value {
-            font-size: 1.3em;
+            font-size: 1.6em; /* Крупные значения */
             color: #007bff;
-            font-weight: bold;
+            font-weight: 700; /* Жирный шрифт */
             display: block;
-            margin-bottom: 15px;
+            margin-top: 10px;
             word-wrap: break-word;
         }
         .loading {
             color: #888;
+            font-size: 1.2em;
         }
         .warning {
-            color: orange;
+            color: #ffc107; /* Желтый для предупреждений */
+            font-weight: 400;
         }
         .error {
-            color: red;
+            color: #dc3545; /* Красный для ошибок */
+            font-weight: 400;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+        .copied-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 123, 255, 0.9); /* Полупрозрачный синий фон */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 12px;
+            pointer-events: none; /* Чтобы не блокировал клики на карточку */
+        }
+        .copied-message.show {
+            opacity: 1;
+        }
+
+        /* Адаптация для мобильных устройств */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            .info-grid {
+                grid-template-columns: 1fr; /* Одна колонка на мобильных */
+                gap: 20px;
+            }
+            .info-card {
+                padding: 20px;
+            }
+            .info-card h2 {
+                font-size: 1.3em;
+            }
+            .info-value {
+                font-size: 1.4em;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Ваш IP-адрес (IPv4):</h1>
-        <span id="ipv4-address" class="info-value loading">Загрузка...</span>
+    <div class="header">
+        <h1>Ваша цифровая подпись в сети</h1>
+        <p>Узнайте подробнее, какую информацию ваш браузер и устройство могут раскрывать в интернете.</p>
+    </div>
 
-        <h1>Ваш IP-адрес (IPv6):</h1>
-        <span id="ipv6-address" class="info-value loading">Загрузка... (не всегда доступен)</span>
+    <div class="info-grid">
 
-        <h1>Страна и Город:</h1>
-        <span id="location-info" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="ipv4-address">
+            <h2>Ваш IP-адрес (IPv4)</h2>
+            <span id="ipv4-address" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>DNS:</h1>
-        <span id="dns-info" class="info-value loading warning">Информация о DNS недоступна с клиента.</span>
+        <div class="info-card" data-copy-target="ipv6-address">
+            <h2>Ваш IP-адрес (IPv6)</h2>
+            <span id="ipv6-address" class="info-value loading">Загрузка...</span>
+            <p class="note">Не всегда доступен или отображается.</p>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Поддержка WebRTC:</h1>
-        <span id="webrtc-support" class="info-value loading">Проверка...</span>
+        <div class="info-card" data-copy-target="location-info">
+            <h2>Страна и Город</h2>
+            <span id="location-info" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Обнаруженные IP-адреса через WebRTC:</h1>
-        <span id="webrtc-leak" class="info-value loading">Проверка... (может раскрывать локальные IP или IP через VPN)</span>
+        <div class="info-card" data-copy-target="dns-info">
+            <h2>DNS</h2>
+            <span id="dns-info" class="info-value warning">Недоступно с клиента.</span>
+            <p class="note">Требуется сервер для определения DNS.</p>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>User-Agent:</h1>
-        <span id="user-agent" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="webrtc-support">
+            <h2>Поддержка WebRTC</h2>
+            <span id="webrtc-support" class="info-value loading">Проверка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Браузер:</h1>
-        <span id="browser-info" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="webrtc-leak">
+            <h2>Обнаруженные WebRTC IP</h2>
+            <span id="webrtc-leak" class="info-value loading">Проверка...</span>
+            <p class="note">Может показывать локальные IP или реальный IP при использовании VPN.</p>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Операционная система:</h1>
-        <span id="os-info" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="user-agent">
+            <h2>User-Agent</h2>
+            <span id="user-agent" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Батарея:</h1>
-        <span id="battery-info" class="info-value loading">Загрузка... (может быть недоступно)</span>
+        <div class="info-card" data-copy-target="browser-info">
+            <h2>Браузер</h2>
+            <span id="browser-info" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Разрешение экрана:</h1>
-        <span id="screen-resolution" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="os-info">
+            <h2>Операционная система</h2>
+            <span id="os-info" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Время устройства:</h1>
-        <span id="device-time" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="battery-info">
+            <h2>Батарея</h2>
+            <span id="battery-info" class="info-value loading">Загрузка...</span>
+            <p class="note">Может быть недоступно (например, в Firefox или без HTTPS).</p>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Язык устройства:</h1>
-        <span id="device-language" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="screen-resolution">
+            <h2>Разрешение экрана</h2>
+            <span id="screen-resolution" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
 
-        <h1>Язык браузера:</h1>
-        <span id="browser-language" class="info-value loading">Загрузка...</span>
+        <div class="info-card" data-copy-target="device-time">
+            <h2>Время устройства</h2>
+            <span id="device-time" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
+
+        <div class="info-card" data-copy-target="device-language">
+            <h2>Язык устройства</h2>
+            <span id="device-language" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
+
+        <div class="info-card" data-copy-target="browser-language">
+            <h2>Язык браузера</h2>
+            <span id="browser-language" class="info-value loading">Загрузка...</span>
+            <div class="copied-message">Скопировано!</div>
+        </div>
+
     </div>
 
     <script>
@@ -116,7 +246,8 @@
         // --- IP-адреса и местоположение ---
         async function getIpAndLocation() {
             try {
-                const ipv4Response = await fetch('http://ip-api.com/json');
+                // Изменено на HTTPS
+                const ipv4Response = await fetch('https://ip-api.com/json');
                 const ipv4Data = await ipv4Response.json();
 
                 if (ipv4Data.status === 'success') {
@@ -194,7 +325,7 @@
                         const ipList = candidates.length > 0 ? candidates.join(', ') : 'Не обнаружено (или заблокировано).';
                         webrtcLeakElement.textContent = ipList;
                         webrtcLeakElement.classList.remove('loading');
-                        if (candidates.length > 0) {
+                        if (candidates.length > 0 && ipList !== 'Не обнаружено (или заблокировано).') {
                              webrtcLeakElement.classList.add('warning');
                         }
                     }
@@ -332,7 +463,7 @@
         }
 
         // --- Время и язык устройства/браузера ---
-        function updateDeviceTimeAndLanguage() { // Переименована для ясности
+        function updateDeviceTimeAndLanguage() {
             const deviceTimeElement = document.getElementById('device-time');
             const deviceLanguageElement = document.getElementById('device-language');
             const browserLanguageElement = document.getElementById('browser-language');
@@ -348,19 +479,57 @@
             browserLanguageElement.classList.remove('loading');
         }
 
+        // --- Функция копирования ---
+        async function copyCardInfo(event) {
+            const card = event.currentTarget; // Получаем текущую карточку, на которую кликнули
+            const titleElement = card.querySelector('h2');
+            const valueElement = card.querySelector('.info-value');
+            const copiedMessage = card.querySelector('.copied-message');
+
+            if (!titleElement || !valueElement || !copiedMessage) {
+                console.error("Не удалось найти элементы для копирования в карточке.");
+                return;
+            }
+
+            const title = titleElement.textContent.trim();
+            const value = valueElement.textContent.trim();
+            const textToCopy = `${title}: ${value}`;
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+
+                // Показываем сообщение "Скопировано!"
+                copiedMessage.classList.add('show');
+                setTimeout(() => {
+                    copiedMessage.classList.remove('show');
+                }, 1000); // Сообщение исчезнет через 1 секунду
+
+            } catch (err) {
+                console.error('Не удалось скопировать текст: ', err);
+                alert('Не удалось скопировать текст. Возможно, браузер не поддерживает или не дал разрешение.');
+            }
+        }
+
 
         // --- Вызов всех функций ---
-        getIpAndLocation();
-        getDnsInfo();
-        getWebRTCInfo();
-        getUserAgent();
-        getBrowserAndOSInfo();
-        getBatteryInfo();
-        getScreenResolution();
+        document.addEventListener('DOMContentLoaded', () => { // Убедимся, что DOM загружен
+            getIpAndLocation();
+            getDnsInfo();
+            getWebRTCInfo();
+            getUserAgent();
+            getBrowserAndOSInfo();
+            getBatteryInfo();
+            getScreenResolution();
 
-        // Динамическое обновление времени каждую секунду
-        updateDeviceTimeAndLanguage(); // Вызываем сразу для первоначального отображения
-        setInterval(updateDeviceTimeAndLanguage, 1000); // Обновляем каждую секунду
+            updateDeviceTimeAndLanguage();
+            setInterval(updateDeviceTimeAndLanguage, 1000);
+
+            // Добавляем обработчики событий для копирования
+            const infoCards = document.querySelectorAll('.info-card');
+            infoCards.forEach(card => {
+                card.addEventListener('click', copyCardInfo);
+            });
+        });
     </script>
 </body>
 </html>
