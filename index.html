@@ -3,28 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ваш IP-адрес</title>
+  <title>Информация об устройстве</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/ua-parser-js@1.0.37/dist/ua-parser.min.js"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
   <div class="bg-white p-8 rounded-lg shadow-lg text-center">
-    <h1 class="text-2xl font-bold mb-4">Ваш IP-адрес</h1>
-    <p id="ip-address" class="text-lg">Загрузка...</p>
+    <h1 class="text-2xl font-bold mb-4">Информация об устройстве</h1>
+    <p><strong>Ваш IP-адрес:</strong> <span id="ip-address">Загрузка...</span></p>
+    <p><strong>Браузер:</strong> <span id="browser-info">Загрузка...</span></p>
   </div>
 
   <script>
     async function fetchIP() {
       try {
-        const response = await fetch('https://api.ipify.org?format=json');
+        const response = await fetch('http://ip-api.com/json/');
         const data = await response.json();
-        document.getElementById('ip-address').textContent = data.ip;
+        document.getElementById('ip-address').textContent = data.query;
       } catch (error) {
-        document.getElementById('ip-address').textContent = 'Ошибка при получении IP';
+        document.getElementById('ip-address').textContent = 'Ошибка';
         console.error('Error fetching IP:', error);
       }
     }
 
-    window.onload = fetchIP;
+    function getBrowserInfo() {
+      const parser = new UAParser();
+      const result = parser.getResult();
+      const browserName = result.browser.name;
+      const browserVersion = result.browser.version;
+      document.getElementById('browser-info').textContent = `${browserName} ${browserVersion}`;
+    }
+
+    window.onload = () => {
+      fetchIP();
+      getBrowserInfo();
+    };
   </script>
 </body>
 </html>
