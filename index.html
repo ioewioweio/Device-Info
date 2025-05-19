@@ -148,7 +148,7 @@
         <div class="info-card" data-copy-target="ipv6-address">
             <h2>Ваш IP-адрес (IPv6)</h2>
             <span id="ipv6-address" class="info-value loading">Загрузка...</span>
-            <p class="note">Не всегда доступен или отображается.</p>
+            <p class="note">Отображает ваш IPv6-адрес, если доступен. Если IPv6-соединение отсутствует, может быть показан ваш IPv4-адрес, используемый для IPv6-сервисов.</p>
             <div class="copied-message">Скопировано!</div>
         </div>
 
@@ -161,7 +161,7 @@
         <div class="info-card" data-copy-target="dns-info">
             <h2>DNS</h2>
             <span id="dns-info" class="info-value warning">Недоступно с клиента.</span>
-            <p class="note">Требуется сервер для определения DNS.</p>
+            <p class="note">Определение DNS-сервера невозможно напрямую из браузера из соображений безопасности.</p>
             <div class="copied-message">Скопировано!</div>
         </div>
 
@@ -237,7 +237,8 @@
                 return true;
             }
             // Проверка на IPv6 (более сложная, но базовая)
-            if (/^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ip) || /^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)$/.test(ip)) {
+            // Это регулярное выражение более надежно, чем предыдущее
+            if (/^(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:))|(([0-9a-fA-F]{1,4}:){6}(:[0-9a-fA-F]{1,4}|((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)))|(([0-9a-fA-F]{1,4}:){5}(((:[0-9a-fA-F]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)))|(([0-9a-fA-F]{1,4}:){4}(((:[0-9a-fA-F]{1,4}){1,3})|((:[0-9a-fA-F]{1,4})?:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){3}(((:[0-9a-fA-F]{1,4}){1,4})|((:[0-9a-fA-F]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){2}(((:[0-9a-fA-F]{1,4}){1,5})|((:[0-9a-fA-F]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){1}(((:[0-9a-fA-F]{1,4}){1,6})|((:[0-9a-fA-F]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(::((([0-9a-fA-F]{1,4}:){1,7})|((:[0-9a-fA-F]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))$/.test(ip)) {
                 return true;
             }
             return false;
@@ -245,40 +246,61 @@
 
         // --- IP-адреса и местоположение ---
         async function getIpAndLocation() {
+            const ipv4AddressElement = document.getElementById('ipv4-address');
+            const ipv6AddressElement = document.getElementById('ipv6-address');
+            const locationInfoElement = document.getElementById('location-info');
+
             try {
-                // Изменено на HTTPS
+                // Попытка получить IPv4 и местоположение через ip-api.com
                 const ipv4Response = await fetch('https://ip-api.com/json');
                 const ipv4Data = await ipv4Response.json();
 
                 if (ipv4Data.status === 'success') {
-                    document.getElementById('ipv4-address').textContent = ipv4Data.query;
-                    document.getElementById('location-info').textContent = `${ipv4Data.country}, ${ipv4Data.city}`;
+                    ipv4AddressElement.textContent = ipv4Data.query;
+                    locationInfoElement.textContent = `${ipv4Data.country}, ${ipv4Data.city}`;
                 } else {
-                    document.getElementById('ipv4-address').textContent = 'Не удалось получить IPv4.';
-                    document.getElementById('location-info').textContent = 'Не удалось получить местоположение.';
-                    console.error('Ошибка IP-API (IPv4):', ipv4Data.message);
+                    // Фолбэк: если ip-api.com не сработал, попробуем ipify.org для IPv4
+                    console.warn('ip-api.com не ответил, используем фолбэк для IPv4.');
+                    try {
+                        const fallbackIpv4Response = await fetch('https://api.ipify.org?format=json');
+                        const fallbackIpv4Data = await fallbackIpv4Response.json();
+                        if (fallbackIpv4Data.ip) {
+                            ipv4AddressElement.textContent = fallbackIpv4Data.ip;
+                            locationInfoElement.textContent = 'Местоположение неизвестно (API-ошибка).';
+                        } else {
+                            ipv4AddressElement.textContent = 'Не удалось получить IPv4 (API-ошибка).';
+                            locationInfoElement.textContent = 'Не удалось получить местоположение (API-ошибка).';
+                        }
+                    } catch (fallbackError) {
+                        console.error('Ошибка фолбэк API для IPv4:', fallbackError);
+                        ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
+                        locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
+                    }
                 }
 
+                // Получение IPv6 через api64.ipify.org
                 const ipv6Response = await fetch('https://api64.ipify.org?format=json');
                 const ipv6Data = await ipv6Response.json();
                 if (ipv6Data.ip) {
-                    document.getElementById('ipv6-address').textContent = ipv6Data.ip;
+                    ipv6AddressElement.textContent = ipv6Data.ip;
                 } else {
-                    document.getElementById('ipv6-address').textContent = 'IPv6 не обнаружен или API недоступен.';
+                    ipv6AddressElement.textContent = 'IPv6 не обнаружен или API недоступен.';
                 }
 
-            } catch (error) {
-                console.error('Ошибка при получении IP/местоположения:', error);
-                document.getElementById('ipv4-address').textContent = 'Ошибка сети при получении IPv4.';
-                document.getElementById('location-info').textContent = 'Ошибка сети при получении местоположения.';
-                document.getElementById('ipv6-address').textContent = 'Ошибка сети при получении IPv6.';
-                document.getElementById('ipv4-address').classList.add('error');
-                document.getElementById('location-info').classList.add('error');
-                document.getElementById('ipv6-address').classList.add('error');
+            } catch (overallError) {
+                console.error('Общая ошибка при получении IP/местоположения:', overallError);
+                // Устанавливаем статус ошибки, если что-то пошло не так на первом этапе
+                ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
+                locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
+                ipv6AddressElement.textContent = 'Ошибка сети при получении IPv6.';
+
+                ipv4AddressElement.classList.add('error');
+                locationInfoElement.classList.add('error');
+                ipv6AddressElement.classList.add('error');
             } finally {
-                document.getElementById('ipv4-address').classList.remove('loading');
-                document.getElementById('ipv6-address').classList.remove('loading');
-                document.getElementById('location-info').classList.remove('loading');
+                ipv4AddressElement.classList.remove('loading');
+                ipv6AddressElement.classList.remove('loading');
+                locationInfoElement.classList.remove('loading');
             }
         }
 
@@ -350,6 +372,8 @@
         }
 
         // --- Браузер и ОС ---
+        // Учитывая, что используем Chromium, navigator.userAgentData будет приоритетным.
+        // Оставим старый метод как запасной, хотя он и не будет часто использоваться.
         async function getBrowserAndOSInfo() {
             const browserInfoElement = document.getElementById('browser-info');
             const osInfoElement = document.getElementById('os-info');
@@ -358,14 +382,14 @@
             let osName = "Неизвестна";
             let osVersion = "";
 
-            if (navigator.userAgentData) {
+            if (navigator.userAgentData) { // User-Agent Client Hints
                 try {
                     const uaData = await navigator.userAgentData.getHighEntropyValues(["fullVersionList", "platform", "platformVersion"]);
                     const brands = uaData.fullVersionList || uaData.brands;
 
                     if (brands && brands.length > 0) {
                         for (const brand of brands) {
-                            if (!brand.brand.includes("Not")) {
+                            if (!brand.brand.includes("Not")) { // Отфильтровываем "Not A;Brand"
                                 browserName = brand.brand;
                                 browserVersion = brand.version;
                                 break;
@@ -378,9 +402,10 @@
 
                 } catch (error) {
                     console.error('Ошибка Client Hints:', error);
+                    // В случае ошибки с Client Hints, используем старый метод
                     getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
                 }
-            } else {
+            } else { // Fallback для старых версий или других браузеров
                 getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
             }
 
@@ -392,21 +417,22 @@
 
         function getBrowserAndOSInfoLegacy(browserElement, osElement) {
             const userAgent = navigator.userAgent;
-            let browserName = "Неизвестен (старый метод)";
+            let browserName = "Неизвестен (по User-Agent)";
             let browserVersion = "Неизвестна";
-            let osName = "Неизвестна (старый метод)";
+            let osName = "Неизвестна (по User-Agent)";
             let osVersion = "";
 
-            if (userAgent.includes("Opera") || userAgent.includes("Opr")) {
-                browserName = "Opera";
-                browserVersion = userAgent.match(/(Opera|Opr)\/([0-9.]+)/)?.[2] || "Неизвестна";
+            // Browser detection (legacy)
+            if (userAgent.includes("Chrome") && !userAgent.includes("Edg") && !userAgent.includes("Opr")) {
+                browserName = "Google Chrome";
+                browserVersion = userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || "Неизвестна";
             } else if (userAgent.includes("Edg")) {
                 browserName = "Microsoft Edge";
                 browserVersion = userAgent.match(/Edg\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Chrome")) {
-                browserName = "Google Chrome";
-                browserVersion = userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Safari")) {
+            } else if (userAgent.includes("Opera") || userAgent.includes("Opr")) {
+                browserName = "Opera";
+                browserVersion = userAgent.match(/(Opera|Opr)\/([0-9.]+)/)?.[2] || "Неизвестна";
+            } else if (userAgent.includes("Safari")) { // Safari часто содержит "Chrome" в UA, поэтому проверяем после Chrome
                 browserName = "Apple Safari";
                 browserVersion = userAgent.match(/Version\/([0-9.]+).*Safari/)?.[1] || "Неизвестна";
             } else if (userAgent.includes("Firefox")) {
@@ -417,20 +443,23 @@
                 browserVersion = userAgent.match(/(MSIE |rv:)([0-9.]+)/)?.[2] || "Неизвестна";
             }
 
+            // OS detection (legacy) - упрощено, но остается для общей совместимости
             if (userAgent.includes("Windows NT 10.0")) { osName = "Windows"; osVersion = "10/11"; }
             else if (userAgent.includes("Windows NT 6.3")) { osName = "Windows"; osVersion = "8.1"; }
             else if (userAgent.includes("Windows NT 6.2")) { osName = "Windows"; osVersion = "8"; }
             else if (userAgent.includes("Windows NT 6.1")) { osName = "Windows"; osVersion = "7"; }
-            else if (userAgent.includes("Mac OS X")) { osName = "macOS"; osVersion = userAgent.match(/Mac OS X ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
             else if (userAgent.includes("Android")) { osName = "Android"; osVersion = userAgent.match(/Android ([0-9.]+)/)?.[1] || ""; }
+            else if (userAgent.includes("Mac OS X")) { osName = "macOS"; osVersion = userAgent.match(/Mac OS X ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
             else if (userAgent.includes("Linux")) { osName = "Linux"; }
             else if (userAgent.includes("iOS")) { osName = "iOS"; osVersion = userAgent.match(/OS ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
+            // Общие fallback'и
             else if (navigator.platform.includes("Win")) { osName = "Windows"; }
             else if (navigator.platform.includes("Mac")) { osName = "macOS"; }
             else if (navigator.platform.includes("Linux")) { osName = "Linux"; }
             else if (navigator.platform.includes("iPhone") || navigator.platform.includes("iPad") || navigator.platform.includes("iPod")) { osName = "iOS"; }
 
-            browserElement.textContent = `${browserName} (Версия: ${browserVersion})`;
+
+            browserElement.textContent = `${browserName}${browserVersion !== "Неизвестна" ? ` (Версия: ${browserVersion})` : ""}`;
             osElement.textContent = `${osName}${osVersion ? ' ' + osVersion : ''}`;
         }
 
@@ -481,7 +510,7 @@
 
         // --- Функция копирования ---
         async function copyCardInfo(event) {
-            const card = event.currentTarget; // Получаем текущую карточку, на которую кликнули
+            const card = event.currentTarget;
             const titleElement = card.querySelector('h2');
             const valueElement = card.querySelector('.info-value');
             const copiedMessage = card.querySelector('.copied-message');
@@ -502,7 +531,7 @@
                 copiedMessage.classList.add('show');
                 setTimeout(() => {
                     copiedMessage.classList.remove('show');
-                }, 1000); // Сообщение исчезнет через 1 секунду
+                }, 1000);
 
             } catch (err) {
                 console.error('Не удалось скопировать текст: ', err);
@@ -512,9 +541,9 @@
 
 
         // --- Вызов всех функций ---
-        document.addEventListener('DOMContentLoaded', () => { // Убедимся, что DOM загружен
+        document.addEventListener('DOMContentLoaded', () => {
             getIpAndLocation();
-            getDnsInfo();
+            getDnsInfo(); // По-прежнему не изменится
             getWebRTCInfo();
             getUserAgent();
             getBrowserAndOSInfo();
@@ -524,7 +553,6 @@
             updateDeviceTimeAndLanguage();
             setInterval(updateDeviceTimeAndLanguage, 1000);
 
-            // Добавляем обработчики событий для копирования
             const infoCards = document.querySelectorAll('.info-card');
             infoCards.forEach(card => {
                 card.addEventListener('click', copyCardInfo);
