@@ -3,69 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Проверка IP-адресов</title>
+    <title>Мой IP</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
             margin: 0;
-            background-color: #f4f4f9;
-        }
-        .container {
+            background-color: #f0f2f5;
+            color: #1c1e21;
             text-align: center;
-            background-color: #fff;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+        .ip-container {
+            background-color: #ffffff;
+            padding: 25px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            min-width: 280px;
+        }
+        h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.5em;
         }
         .ip-address {
-            margin: 10px 0;
-            font-size: 1.2em;
+            margin: 12px 0;
+            font-size: 1.15em;
+            word-break: break-all; /* Для длинных IPv6 адресов */
+        }
+        .label {
+            font-weight: 600;
+            color: #555;
+        }
+        .value {
+            color: #007bff; /* Синий цвет для IP */
+            font-weight: 500;
+        }
+        .loading {
+            color: #777;
+        }
+        .error {
+            color: #dc3545; /* Красный цвет для ошибок */
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Ваши IP-адреса</h1>
-        <div id="ipv4" class="ip-address">Определение...</div>
-        <div id="ipv6" class="ip-address">Определение...</div>
+    <div class="ip-container">
+        <h2>🌍 Ваши IP адреса:</h2>
+        <div class="ip-address">
+            <span class="label">IPv4:</span>
+            <span id="ipv4" class="loading value">Загрузка...</span>
+        </div>
+        <div class="ip-address">
+            <span class="label">IPv6:</span>
+            <span id="ipv6" class="loading value">Загрузка...</span>
+        </div>
     </div>
 
     <script>
-        // Функция для получения IPv4 адреса
-        function getIPv4() {
-            fetch('https://api.ipify.org ?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('ipv4').innerText = 'IPv4: ' + data.ip;
-                })
-                .catch(error => {
-                    document.getElementById('ipv4').innerText = 'Не удалось определить IPv4 адрес';
-                    console.error('Ошибка при получении IPv4 адреса:', error);
-                });
+        async function fetchIP(url, elementId, ipType) {
+            const element = document.getElementById(elementId);
+            try {
+                // Добавляем небольшой таймаут для предотвращения слишком долгого ожидания
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 секунд таймаут
+
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const ip = await response.text();
+                
+                // Простая проверка формата (можно улучшить регулярными выражениями)
+                if (ipType === 'ipv4') {
+                    if (!ip.includes('.') || ip.length < 7 || ip.length > 15) { // Очень базовая проверка
+                         element.textContent = 'Не удалось определить';
+                         element.className = 'error value';
+                         return;
+                    }
+                } else if (ipType === 'ipv6') {
+                    if (!ip.includes(':') || ip.length < 10 ) { // Очень базовая проверка
+                        element.textContent = 'Недоступен или не удалось определить';
+                        element.className = 'error value';
+                        return;
+                    }
+                }
+                
+                element.textContent = ip.trim(); // trim() на всякий случай
+                element.className = 'value';
+
+            } catch (error) {
+                console.error(`Ошибка при получении ${ipType} с ${url}:`, error);
+                if (ipType === 'ipv6') {
+                    element.textContent = 'Недоступен';
+                } else {
+                    element.textContent = 'Не удалось определить';
+                }
+                element.className = 'error value';
+            }
         }
 
-        // Функция для получения IPv6 адреса
-        function getIPv6() {
-            fetch('https://api6.ipify.org ?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('ipv6').innerText = 'IPv6: ' + data.ip;
-                })
-                .catch(error => {
-                    document.getElementById('ipv6').innerText = 'Не удалось определить IPv6 адрес';
-                    console.error('Ошибка при получении IPv6 адреса:', error);
-                });
-        }
+        // Сервисы для получения IP:
+        // ipv4.icanhazip.com - DNS резолвится только в A-запись (IPv4)
+        // ipv6.icanhazip.com - DNS резолвится только в AAAA-запись (IPv6)
+        // Это позволяет точно запрашивать конкретный тип адреса.
 
-        // Вызов функций при загрузке страницы
-        window.onload = () => {
-            getIPv4();
-            getIPv6();
-        };
+        fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
+        fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
+
+        // Альтернативные сервисы (api.ipify.org может возвращать IPv6, если соединение через него)
+        // fetchIP('https://api.ipify.org', 'ipv4', 'ipv4'); // Менее надежно для чистого IPv4
+        // fetchIP('https://api6.ipify.org', 'ipv6', 'ipv6'); // Для IPv6
     </script>
 </body>
 </html>
