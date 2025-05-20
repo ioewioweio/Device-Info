@@ -3,125 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой IP</title>
+    <title>Моя информация</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
+            justify-content: flex-start; /* Changed to flex-start for scrolling */
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f2f5;
             color: #1c1e21;
-            text-align: center;
             padding: 20px;
             box-sizing: border-box;
         }
-        .ip-container {
+        .info-container {
             background-color: #ffffff;
-            padding: 25px 30px;
+            padding: 20px 25px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            min-width: 280px;
+            width: 100%;
+            max-width: 600px; /* Max width for content */
+            margin-bottom: 20px; /* Space at bottom */
         }
         h2 {
             margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: #333;
-            font-size: 1.5em;
+            font-size: 1.4em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
         }
-        .ip-address {
-            margin: 12px 0;
-            font-size: 1.15em;
-            word-break: break-all; /* Для длинных IPv6 адресов */
+        .info-item {
+            margin: 10px 0;
+            font-size: 1em;
+            line-height: 1.5;
         }
         .label {
             font-weight: 600;
             color: #555;
+            min-width: 100px; /* Align labels a bit */
+            display: inline-block;
         }
         .value {
-            color: #007bff; /* Синий цвет для IP */
+            color: #007bff;
             font-weight: 500;
+            word-break: break-all;
         }
         .loading {
             color: #777;
         }
         .error {
-            color: #dc3545; /* Красный цвет для ошибок */
+            color: #dc3545;
+        }
+        .comment {
+            font-size: 0.8em;
+            color: #666;
+            display: block;
+            margin-top: 2px;
+        }
+        #userAgent.value {
+             font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+             font-size: 0.9em;
+        }
+        #parsingNotes {
+            font-size: 0.85em;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+            color: #444;
         }
     </style>
 </head>
 <body>
-    <div class="ip-container">
-        <h2>🌍 Ваши IP адреса:</h2>
-        <div class="ip-address">
+    <div class="info-container">
+        <h2>🌍 IP адреса</h2>
+        <div class="info-item">
             <span class="label">IPv4:</span>
             <span id="ipv4" class="loading value">Загрузка...</span>
         </div>
-        <div class="ip-address">
+        <div class="info-item">
             <span class="label">IPv6:</span>
             <span id="ipv6" class="loading value">Загрузка...</span>
         </div>
     </div>
 
+    <div class="info-container">
+        <h2>📍 Геолокация <span id="detectedIpForGeo" class="comment"></span></h2>
+        <div class="info-item">
+            <span class="label">Страна:</span>
+            <span id="geoCountry" class="loading value">Загрузка...</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Город:</span>
+            <span id="geoCity" class="loading value">Загрузка...</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Широта:</span>
+            <span id="geoLat" class="loading value">Загрузка...</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Долгота:</span>
+            <span id="geoLon" class="loading value">Загрузка...</span>
+        </div>
+    </div>
+
+    <div class="info-container">
+        <h2>🖥️ Информация о системе</h2>
+        <div class="info-item">
+            <span class="label">User Agent:</span>
+            <span id="userAgent" class="loading value">Загрузка...</span>
+        </div>
+        <div class="info-item">
+            <span class="label">Браузер:</span>
+            <span id="browser" class="loading value">Загрузка...</span>
+        </div>
+        <div class="info-item">
+            <span class="label">ОС:</span>
+            <span id="os" class="loading value">Загрузка...</span>
+        </div>
+        <div id="parsingNotes" class="comment"></div>
+    </div>
+
     <script>
+        async function fetchWithTimeout(resource, options = {}, timeout = 5000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            options.signal = controller.signal;
+            try {
+                const response = await fetch(resource, options);
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        }
+
         async function fetchIP(url, elementId, ipType) {
             const element = document.getElementById(elementId);
+            element.className = 'loading value';
             try {
-                // Добавляем небольшой таймаут для предотвращения слишком долгого ожидания
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 секунд таймаут
+                const response = await fetchWithTimeout(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const ip = (await response.text()).trim();
 
-                const response = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const ip = await response.text();
-                
-                // Простая проверка формата (можно улучшить регулярными выражениями)
+                let isValid = false;
                 if (ipType === 'ipv4') {
-                    if (!ip.includes('.') || ip.length < 7 || ip.length > 15) { // Очень базовая проверка
-                         element.textContent = 'Не удалось определить';
-                         element.className = 'error value';
-                         return;
-                    }
+                    isValid = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip);
                 } else if (ipType === 'ipv6') {
-                    if (!ip.includes(':') || ip.length < 10 ) { // Очень базовая проверка
-                        element.textContent = 'Недоступен или не удалось определить';
-                        element.className = 'error value';
-                        return;
-                    }
+                    isValid = ip.includes(':') && ip.length >= 3; // Basic check
                 }
                 
-                element.textContent = ip.trim(); // trim() на всякий случай
-                element.className = 'value';
-
+                if (isValid) {
+                    element.textContent = ip;
+                    element.className = 'value';
+                } else {
+                    throw new Error('Invalid IP format received');
+                }
             } catch (error) {
                 console.error(`Ошибка при получении ${ipType} с ${url}:`, error);
-                if (ipType === 'ipv6') {
-                    element.textContent = 'Недоступен';
-                } else {
-                    element.textContent = 'Не удалось определить';
-                }
+                element.textContent = (ipType === 'ipv6') ? 'Недоступен' : 'Не удалось определить';
                 element.className = 'error value';
             }
         }
 
-        // Сервисы для получения IP:
-        // ipv4.icanhazip.com - DNS резолвится только в A-запись (IPv4)
-        // ipv6.icanhazip.com - DNS резолвится только в AAAA-запись (IPv6)
-        // Это позволяет точно запрашивать конкретный тип адреса.
+        async function fetchGeoIP() {
+            const geoCountry = document.getElementById('geoCountry');
+            const geoCity = document.getElementById('geoCity');
+            const geoLat = document.getElementById('geoLat');
+            const geoLon = document.getElementById('geoLon');
+            const detectedIpEl = document.getElementById('detectedIpForGeo');
 
-        fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
-        fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
+            [geoCountry, geoCity, geoLat, geoLon].forEach(el => {
+                el.textContent = 'Загрузка...';
+                el.className = 'loading value';
+            });
+            detectedIpEl.textContent = '';
 
-        // Альтернативные сервисы (api.ipify.org может возвращать IPv6, если соединение через него)
-        // fetchIP('https://api.ipify.org', 'ipv4', 'ipv4'); // Менее надежно для чистого IPv4
-        // fetchIP('https://api6.ipify.org', 'ipv6', 'ipv6'); // Для IPv6
+            try {
+                const response = await fetchWithTimeout('https://ip-api.com/json/?fields=status,message,country,city,lat,lon,query');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    geoCountry.textContent = data.country || 'N/A';
+                    geoCity.textContent = data.city || 'N/A';
+                    geoLat.textContent = data.lat !== undefined ? data.lat.toFixed(4) : 'N/A';
+                    geoLon.textContent = data.lon !== undefined ? data.lon.toFixed(4) : 'N/A';
+                    detectedIpEl.textContent = `(Данные для IP: ${data.query})`;
+                    [geoCountry, geoCity, geoLat, geoLon].forEach(el => el.className = 'value');
+                } else {
+                    throw new Error(data.message || 'Не удалось получить данные GeoIP');
+                }
+            } catch (error) {
+                console.error('Ошибка при получении GeoIP:', error);
+                const errorMsg = 'Ошибка';
+                [geoCountry, geoCity, geoLat, geoLon].forEach(el => {
+                    el.textContent = errorMsg;
+                    el.className = 'error value';
+                });
+                detectedIpEl.textContent = '(Не удалось загрузить данные геолокации)';
+            }
+        }
+
+        function displayUserAgent() {
+            const uaElement = document.getElementById('userAgent');
+            uaElement.textContent = navigator.userAgent || 'N/A';
+            uaElement.className = 'value';
+        }
+
+        function displayBrowserAndOSInfo() {
+            const ua = navigator.userAgent;
+            let browserName = "Неизвестный браузер";
+            let browserVersion = "";
+            let osName = "Неизвестная ОС";
+            let osVersion = "";
+
+            let match;
+
+            // OS Detection
+            if (ua.match(/Windows NT 10\.0/i)) { osName = "Windows"; osVersion = "10 / 11"; }
+            else if (ua.match(/Windows NT 6\.3/i)) { osName = "Windows"; osVersion = "8.1"; }
+            else if (ua.match(/Windows NT 6\.2/i)) { osName = "Windows"; osVersion = "8"; }
+            else if (ua.match(/Windows NT 6\.1/i)) { osName = "Windows"; osVersion = "7"; }
+            else if (ua.match(/Windows NT 6\.0/i)) { osName = "Windows"; osVersion = "Vista"; }
+            else if (ua.match(/Windows NT 5\.1/i)) { osName = "Windows"; osVersion = "XP"; }
+            else if ((match = ua.match(/Mac OS X ([0-9_]+)/i))) {
+                osName = "macOS";
+                osVersion = match[1].replace(/_/g, '.');
+            } else if ((match = ua.match(/Android[\s\/]([0-9\.]+)/i))) {
+                osName = "Android";
+                osVersion = match[1];
+            } else if ((match = ua.match(/(iPhone|iPad|iPod).*OS\s([0-9_]+)/i))) {
+                osName = match[1] === "iPad" ? "iPadOS" : "iOS";
+                osVersion = match[2].replace(/_/g, '.');
+            } else if (ua.match(/Linux/i)) {
+                osName = "Linux";
+                if (ua.match(/x86_64/i)) osVersion = "(x86_64)";
+                else if (ua.match(/i686/i)) osVersion = "(i686)";
+                else if ((match = ua.match(/armv[0-9]+l?/i))) osVersion = `(${match[0]})`;
+            }
+
+            // Browser Detection (order is important)
+            if ((match = ua.match(/EdgA?\/([0-9\.]+)/i)) || (match = ua.match(/Edge\/([0-9\.]+)/i))) {
+                browserName = "Microsoft Edge";
+                browserVersion = match[1];
+            } else if ((match = ua.match(/OPR\/([0-9\.]+)/i)) || (match = ua.match(/Opera(?: Mini)?\/([0-9\.]+)/i))) {
+                browserName = "Opera";
+                browserVersion = match[1];
+                if (ua.match(/Opera Mini/i)) browserName += " Mini";
+            } else if ((match = ua.match(/YaBrowser\/([0-9\.]+)/i))) {
+                browserName = "Yandex Browser";
+                browserVersion = match[1];
+            } else if ((match = ua.match(/SamsungBrowser\/([0-9\.]+)/i))) {
+                browserName = "Samsung Internet";
+                browserVersion = match[1];
+            } else if ((match = ua.match(/CriOS\/([0-9\.]+)/i))) {
+                browserName = "Google Chrome";
+                browserVersion = match[1] + " (iOS)";
+            } else if ((match = ua.match(/FxiOS\/([0-9\.]+)/i))) {
+                browserName = "Mozilla Firefox";
+                browserVersion = match[1] + " (iOS)";
+            } else if ((match = ua.match(/Firefox\/([0-9\.]+)/i))) {
+                browserName = "Mozilla Firefox";
+                browserVersion = match[1];
+            } else if ((match = ua.match(/Chrome\/([0-9\.]+)/i))) { // After Edge, Opera, etc.
+                browserName = "Google Chrome";
+                browserVersion = match[1];
+            } else if (ua.match(/Safari/i) && (match = ua.match(/Version\/([0-9\.]+)/i))) {
+                browserName = "Apple Safari";
+                browserVersion = match[1];
+            } else if ((match = ua.match(/MSIE ([0-9\.]+)/i)) || (match = ua.match(/Trident\/.*?rv:([0-9\.]+)/i))) {
+                browserName = "Internet Explorer";
+                browserVersion = match[1];
+            } else if (ua.match(/AppleWebKit/i) && (match = ua.match(/Safari\/([0-9\.]+)/i))) {
+                 // Generic WebKit/Safari, not a specific product or old version
+                browserName = "WebKit-based Browser";
+                browserVersion = `(WebKit: ${match[1]})`;
+            }
+            
+            const browserEl = document.getElementById('browser');
+            browserEl.textContent = `${browserName}${browserVersion ? ' ' + browserVersion : ''}`;
+            browserEl.className = 'value';
+
+            const osEl = document.getElementById('os');
+            osEl.textContent = `${osName}${osVersion ? ' ' + osVersion : ''}`;
+            osEl.className = 'value';
+
+            document.getElementById('parsingNotes').innerHTML = "<em>Примечание: Точность определения версии браузера/ОС зависит от User-Agent и может быть приблизительной. Некоторые браузеры могут маскироваться под другие.</em>";
+        }
+
+        window.onload = () => {
+            fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
+            fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
+            fetchGeoIP();
+            displayUserAgent();
+            displayBrowserAndOSInfo();
+        };
     </script>
 </body>
 </html>
