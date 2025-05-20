@@ -3,633 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой IP & Инфо</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Проверка IP-адресов</title>
     <style>
-        :root {
-            --bg-color: #2c3e50; /* Темно-синий фон */
-            --card-bg: #34495e; /* Чуть светлее для карточек */
-            --text-color-primary: #ecf0f1; /* Светлый текст */
-            --text-color-secondary: #bdc3c7; /* Серый текст для заметок */
-            --accent-color: #3498db; /* Яркий акцент для значений */
-            --accent-color-light: #5dade2; /* Более светлый акцент для hover */
-            --shadow-color: rgba(0, 0, 0, 0.25); /* Тень для карточек */
-            --border-color: #4a627a; /* Цвет границы */
-            --loading-color: #95a5a6; /* Цвет для загрузки */
-            --warning-color: #f39c12; /* Цвет для предупреждений */
-            --error-color: #e74c3c; /* Цвет для ошибок */
-            --success-color: #2ecc71; /* Цвет для успеха */
-        }
-
         body {
-            font-family: 'Lato', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background: var(--bg-color); /* Использование переменной */
+            height: 100vh;
             margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            background-color: #fff;
             padding: 20px;
-            box-sizing: border-box;
-            line-height: 1.6;
-            color: var(--text-color-primary); /* Основной цвет текста */
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        .header {
-            width: 100%;
-            max-width: 960px;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .header h1 {
-            font-family: 'Poppins', sans-serif;
-            color: var(--text-color-primary);
-            font-size: 3.2em; /* Крупнее заголовок */
-            margin-bottom: 15px;
-            text-shadow: 0 2px 5px var(--shadow-color); /* Тень для заголовка */
-        }
-        /* Удален <p> из header */
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Чуть шире карточки */
-            gap: 30px; /* Увеличенный отступ */
-            max-width: 960px;
-            width: 100%;
-        }
-        .info-card {
-            background-color: var(--card-bg);
-            padding: 30px; /* Увеличенный padding */
-            border-radius: 15px; /* Более скругленные углы */
-            box-shadow: 0 8px 20px var(--shadow-color); /* Более выраженная тень */
-            text-align: center;
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background-color 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid var(--border-color); /* Небольшая рамка */
-        }
-        .info-card:hover {
-            transform: translateY(-8px); /* Более выраженный эффект при наведении */
-            box-shadow: 0 12px 25px var(--shadow-color);
-            background-color: #4a627a; /* Чуть светлее при наведении */
-        }
-        .info-card h2 {
-            font-family: 'Poppins', sans-serif;
-            color: var(--accent-color-light); /* Заголовки акцентного цвета */
-            font-size: 1.6em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--border-color); /* Более заметный разделитель */
-        }
-        .info-value {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.8em; /* Крупные значения */
-            color: var(--accent-color);
-            font-weight: 700;
-            display: block;
-            margin-top: 15px;
-            word-wrap: break-word;
-            word-break: break-all; /* Улучшенное разбиение длинных строк */
-        }
-        .info-value.multi-line {
-            font-size: 1.3em; /* Чуть меньше для нескольких строк */
-            line-height: 1.8;
-            font-weight: 600;
-        }
-        .loading {
-            color: var(--loading-color);
-            font-size: 1.3em;
-            animation: pulse 1.5s infinite ease-in-out; /* Анимация загрузки */
-        }
-        .warning {
-            color: var(--warning-color);
-            font-weight: 600;
-        }
-        .error {
-            color: var(--error-color);
-            font-weight: 600;
-        }
-        .success { /* Добавим класс для успешного отображения */
-            color: var(--success-color);
-            font-weight: 600;
-        }
-
-        /* Удален .note */
-
-        .copied-message {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(52, 152, 219, 0.95); /* Более насыщенный синий */
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2em; /* Крупнее текст */
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            border-radius: 15px;
-            pointer-events: none;
-            z-index: 10; /* Убедимся, что поверх карточки */
-        }
-        .copied-message.show {
-            opacity: 1;
-        }
-
-        /* Анимация пульсации для загрузки */
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
-        }
-
-        /* Адаптация для мобильных устройств */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2.2em;
-            }
-            .info-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            .info-card {
-                padding: 25px;
-            }
-            .info-card h2 {
-                font-size: 1.4em;
-            }
-            .info-value {
-                font-size: 1.6em;
-            }
-            .info-value.multi-line {
-                font-size: 1.2em;
-            }
+        .ip-address {
+            margin: 10px 0;
+            font-size: 1.2em;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Ваш Цифровой Отпечаток</h1>
-    </div>
-
-    <div class="info-grid">
-
-        <div class="info-card" data-copy-target="ipv4-address">
-            <h2>Ваш IP-адрес (IPv4)</h2>
-            <span id="ipv4-address" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="ipv6-address">
-            <h2>Ваш IP-адрес (IPv6)</h2>
-            <span id="ipv6-address" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="location-info">
-            <h2>Страна и Город</h2>
-            <span id="location-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-        
-        <div class="info-card" data-copy-target="latitude-longitude">
-            <h2>Широта и Долгота</h2>
-            <span id="latitude-longitude" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="webrtc-support">
-            <h2>Поддержка WebRTC</h2>
-            <span id="webrtc-support" class="info-value loading">Проверка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="webrtc-leak">
-            <h2>Обнаруженные WebRTC IP</h2>
-            <span id="webrtc-leak" class="info-value loading">Проверка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="user-agent">
-            <h2>User-Agent</h2>
-            <span id="user-agent" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="browser-info">
-            <h2>Браузер</h2>
-            <span id="browser-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="os-info">
-            <h2>Операционная система</h2>
-            <span id="os-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="battery-info">
-            <h2>Батарея</h2>
-            <span id="battery-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="screen-resolution">
-            <h2>Разрешение экрана</h2>
-            <span id="screen-resolution" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="time-info">
-            <h2>Время</h2>
-            <span id="time-info" class="info-value multi-line loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="language-info">
-            <h2>Языки</h2>
-            <span id="language-info" class="info-value multi-line loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
+    <div class="container">
+        <h1>Ваши IP-адреса</h1>
+        <div id="ipv4" class="ip-address">Определение...</div>
+        <div id="ipv6" class="ip-address">Определение...</div>
     </div>
 
     <script>
-        // --- Глобальные переменные для данных ---
-        let detectedTimeZone = null;
-        let detectedLatitude = null;
-        let detectedLongitude = null;
-
-        // --- Вспомогательные функции ---
-
-        // Управление классами для элементов
-        function setInfoState(element, value, state = 'default') {
-            element.textContent = value;
-            element.classList.remove('loading', 'warning', 'error', 'success');
-            if (state !== 'default') {
-                element.classList.add(state);
-            }
+        // Функция для получения IPv4 адреса
+        function getIPv4() {
+            fetch('https://api.ipify.org ?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('ipv4').innerText = 'IPv4: ' + data.ip;
+                })
+                .catch(error => {
+                    document.getElementById('ipv4').innerText = 'Не удалось определить IPv4 адрес';
+                    console.error('Ошибка при получении IPv4 адреса:', error);
+                });
         }
 
-        // Проверка на валидный IP-адрес (для WebRTC)
-        function isValidIpAddress(ip) {
-            // Упрощенная, но достаточная проверка для основных IPv4 и IPv6
-            return /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) || /^[0-9a-fA-F:]+$/.test(ip);
+        // Функция для получения IPv6 адреса
+        function getIPv6() {
+            fetch('https://api6.ipify.org ?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('ipv6').innerText = 'IPv6: ' + data.ip;
+                })
+                .catch(error => {
+                    document.getElementById('ipv6').innerText = 'Не удалось определить IPv6 адрес';
+                    console.error('Ошибка при получении IPv6 адреса:', error);
+                });
         }
 
-        // --- Основные функции получения данных ---
-
-        async function getIpAndLocation() {
-            const ipv4AddressElement = document.getElementById('ipv4-address');
-            const ipv6AddressElement = document.getElementById('ipv6-address');
-            const locationInfoElement = document.getElementById('location-info');
-            const latLonElement = document.getElementById('latitude-longitude');
-
-            let ipv4SuccessfullyFetched = false;
-
-            // Попытка получить все через freeipapi.com
-            try {
-                const response = await fetch('https://freeipapi.com/api/json/');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.ipAddress) {
-                        setInfoState(ipv4AddressElement, data.ipAddress, 'success');
-                        ipv4SuccessfullyFetched = true;
-
-                        if (data.countryName && data.cityName) {
-                            setInfoState(locationInfoElement, `${data.countryName}, ${data.cityName}`, 'success');
-                        } else {
-                            setInfoState(locationInfoElement, 'Местоположение не найдено.', 'warning');
-                        }
-
-                        if (data.latitude && data.longitude) {
-                            detectedLatitude = data.latitude.toFixed(4);
-                            detectedLongitude = data.longitude.toFixed(4);
-                            setInfoState(latLonElement, `Ш: ${detectedLatitude}, Д: ${detectedLongitude}`, 'success');
-                        } else {
-                            setInfoState(latLonElement, 'Координаты недоступны.', 'warning');
-                        }
-
-                        if (data.timeZone) {
-                            detectedTimeZone = data.timeZone;
-                        }
-
-                    } else {
-                        console.warn('freeipapi.com не вернул полные данные.');
-                    }
-                } else {
-                    console.warn(`freeipapi.com вернул статус ${response.status}.`);
-                }
-            } catch (error) {
-                console.error('Ошибка при запросе к freeipapi.com:', error);
-            }
-
-            // Фолбэк для IPv4, если freeipapi.com не сработал
-            if (!ipv4SuccessfullyFetched) {
-                try {
-                    const response = await fetch('https://api.ipify.org?format=json');
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.ip) {
-                            setInfoState(ipv4AddressElement, data.ip, 'warning'); // С фолбэком, отмечаем как warning
-                            setInfoState(locationInfoElement, 'Местоположение неизвестно (API-ошибка).', 'warning');
-                            setInfoState(latLonElement, 'Координаты неизвестны (API-ошибка).', 'warning');
-                        } else {
-                            setInfoState(ipv4AddressElement, 'Не удалось получить IPv4.', 'error');
-                            setInfoState(locationInfoElement, 'Не удалось получить местоположение.', 'error');
-                            setInfoState(latLonElement, 'Не удалось получить координаты.', 'error');
-                        }
-                    } else {
-                        setInfoState(ipv4AddressElement, 'Ошибка сети при получении IPv4.', 'error');
-                        setInfoState(locationInfoElement, 'Ошибка сети при получении местоположения.', 'error');
-                        setInfoState(latLonElement, 'Ошибка сети при получении координат.', 'error');
-                    }
-                } catch (error) {
-                    console.error('Ошибка при запросе к api.ipify.org:', error);
-                    setInfoState(ipv4AddressElement, 'Ошибка сети при получении IPv4.', 'error');
-                    setInfoState(locationInfoElement, 'Ошибка сети при получении местоположения.', 'error');
-                    setInfoState(latLonElement, 'Ошибка сети при получении координат.', 'error');
-                }
-            }
-
-            // Получение IPv6 через api64.ipify.org
-            try {
-                const response = await fetch('https://api64.ipify.org?format=json');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.ip) {
-                        setInfoState(ipv6AddressElement, data.ip, 'success');
-                    } else {
-                        setInfoState(ipv6AddressElement, 'IPv6 не обнаружен или API недоступен.', 'warning');
-                    }
-                } else {
-                    setInfoState(ipv6AddressElement, `Ошибка API: ${response.status}`, 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка сети при получении IPv6:', error);
-                setInfoState(ipv6AddressElement, 'Ошибка сети при получении IPv6.', 'error');
-            } finally {
-                // Обновляем время и языки после получения IP/местоположения
-                updateTimeAndLanguage();
-            }
-        }
-
-        async function getWebRTCInfo() {
-            const webrtcSupportElement = document.getElementById('webrtc-support');
-            const webrtcLeakElement = document.getElementById('webrtc-leak');
-
-            if (typeof RTCPeerConnection === 'undefined') {
-                setInfoState(webrtcSupportElement, 'WebRTC не поддерживается.', 'error');
-                setInfoState(webrtcLeakElement, 'N/A', 'error');
-                return;
-            }
-
-            setInfoState(webrtcSupportElement, 'Поддерживается.', 'success');
-
-            try {
-                const pc = new RTCPeerConnection({ iceServers: [] });
-                const candidates = new Set(); // Используем Set для уникальных IP-адресов
-                let timer = null; // Для таймаута сбора кандидатов
-
-                pc.onicecandidate = function(event) {
-                    if (event.candidate) {
-                        const candidateString = event.candidate.candidate;
-                        const parts = candidateString.split(' ');
-                        const ipAddress = parts[4];
-                        const candidateType = parts[7];
-
-                        // Собираем только host кандидатов, они наиболее релевантны для "утечки"
-                        if (candidateType === 'host' && isValidIpAddress(ipAddress)) {
-                            candidates.add(ipAddress);
-                        }
-                        // Сброс таймера при получении нового кандидата
-                        clearTimeout(timer);
-                        timer = setTimeout(displayWebRTCCandidates, 500); // Подождем 500мс после последнего кандидата
-                    } else {
-                        // event.candidate === null означает, что кандидаты закончились
-                        clearTimeout(timer); // Очищаем любой активный таймер
-                        displayWebRTCCandidates();
-                    }
-                };
-
-                pc.createDataChannel('');
-                await pc.createOffer().then(offer => pc.setLocalDescription(offer));
-
-                // Установим максимальный таймер, если кандидаты вообще не приходят
-                timer = setTimeout(displayWebRTCCandidates, 2000); // 2 секунды на сбор
-
-                // Функция для отображения IP-адресов
-                function displayWebRTCCandidates() {
-                    pc.close(); // Важно закрыть соединение после сбора
-                    const ipList = candidates.size > 0 ? Array.from(candidates).join(', ') : 'Не обнаружено.';
-                    if (ipList === 'Не обнаружено.') {
-                         setInfoState(webrtcLeakElement, ipList, 'success');
-                    } else {
-                         setInfoState(webrtcLeakElement, ipList, 'warning'); // Утечка - это warning
-                    }
-                }
-
-            } catch (error) {
-                console.error('Ошибка при проверке WebRTC утечки:', error);
-                setInfoState(webrtcLeakElement, 'Ошибка при проверке.', 'error');
-            }
-        }
-
-        function getUserAgent() {
-            const userAgentElement = document.getElementById('user-agent');
-            setInfoState(userAgentElement, navigator.userAgent, 'success');
-        }
-
-        async function getBrowserAndOSInfo() {
-            const browserInfoElement = document.getElementById('browser-info');
-            const osInfoElement = document.getElementById('os-info');
-            let browserName = "Неизвестен";
-            let browserVersion = "Неизвестна";
-            let osName = "Неизвестна";
-            let osVersion = "";
-
-            if (navigator.userAgentData) { // User-Agent Client Hints
-                try {
-                    const uaData = await navigator.userAgentData.getHighEntropyValues(["fullVersionList", "platform", "platformVersion"]);
-                    const brands = uaData.fullVersionList || uaData.brands;
-
-                    if (brands && brands.length > 0) {
-                        for (const brand of brands) {
-                            if (!brand.brand.includes("Not")) {
-                                browserName = brand.brand;
-                                browserVersion = brand.version;
-                                break;
-                            }
-                        }
-                    }
-                    osName = uaData.platform || "Неизвестна";
-                    osVersion = uaData.platformVersion ? ` ${uaData.platformVersion}` : "";
-
-                } catch (error) {
-                    console.error('Ошибка Client Hints:', error);
-                    // Fallback to legacy if Client Hints fail
-                    getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
-                }
-            } else { // Fallback for older Chromium or non-Chromium (though user specified Chromium only)
-                getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
-            }
-
-            setInfoState(browserInfoElement, `${browserName}${browserVersion !== "Неизвестна" ? ` (Версия: ${browserVersion})` : ""}`, 'success');
-            setInfoState(osInfoElement, `${osName}${osVersion ? ' ' + osVersion : ''}`, 'success');
-        }
-
-        function getBrowserAndOSInfoLegacy(browserElement, osElement) {
-            const userAgent = navigator.userAgent;
-            let browserName = "Неизвестен";
-            let browserVersion = "Неизвестна";
-            let osName = "Неизвестна";
-            let osVersion = "";
-
-            if (userAgent.includes("Chrome") && !userAgent.includes("Edg") && !userAgent.includes("Opr")) {
-                browserName = "Google Chrome";
-                browserVersion = userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Edg")) {
-                browserName = "Microsoft Edge";
-                browserVersion = userAgent.match(/Edg\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Opera") || userAgent.includes("Opr")) {
-                browserName = "Opera";
-                browserVersion = userAgent.match(/(Opera|Opr)\/([0-9.]+)/)?.[2] || "Неизвестна";
-            } else if (userAgent.includes("Safari")) {
-                browserName = "Apple Safari";
-                browserVersion = userAgent.match(/Version\/([0-9.]+).*Safari/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Firefox")) {
-                browserName = "Mozilla Firefox";
-                browserVersion = userAgent.match(/Firefox\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) {
-                browserName = "Internet Explorer";
-                browserVersion = userAgent.match(/(MSIE |rv:)([0-9.]+)/)?.[2] || "Неизвестна";
-            }
-
-            if (userAgent.includes("Windows NT 10.0")) { osName = "Windows"; osVersion = "10/11"; }
-            else if (userAgent.includes("Windows NT 6.3")) { osName = "Windows"; osVersion = "8.1"; }
-            else if (userAgent.includes("Windows NT 6.2")) { osName = "Windows"; osVersion = "8"; }
-            else if (userAgent.includes("Windows NT 6.1")) { osName = "Windows"; osVersion = "7"; }
-            else if (userAgent.includes("Android")) { osName = "Android"; osVersion = userAgent.match(/Android ([0-9.]+)/)?.[1] || ""; }
-            else if (userAgent.includes("Mac OS X")) { osName = "macOS"; osVersion = userAgent.match(/Mac OS X ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
-            else if (userAgent.includes("Linux")) { osName = "Linux"; }
-            else if (userAgent.includes("iOS")) { osName = "iOS"; osVersion = userAgent.match(/OS ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
-            else if (navigator.platform.includes("Win")) { osName = "Windows"; }
-            else if (navigator.platform.includes("Mac")) { osName = "macOS"; }
-            else if (navigator.platform.includes("Linux")) { osName = "Linux"; }
-            else if (navigator.platform.includes("iPhone") || navigator.platform.includes("iPad") || navigator.platform.includes("iPod")) { osName = "iOS"; }
-            else { osName = "Неизвестна"; }
-
-
-            setInfoState(browserElement, `${browserName}${browserVersion !== "Неизвестна" ? ` (Версия: ${browserVersion})` : ""}`, 'success');
-            setInfoState(osElement, `${osName}${osVersion ? ' ' + osVersion : ''}`, 'success');
-        }
-
-        async function getBatteryInfo() {
-            const batteryInfoElement = document.getElementById('battery-info');
-            if ('getBattery' in navigator) {
-                try {
-                    const battery = await navigator.getBattery();
-                    const level = (battery.level * 100).toFixed(0);
-                    const charging = battery.charging ? ' (Заряжается)' : ' (Не заряжается)';
-                    setInfoState(batteryInfoElement, `${level}%${charging}`, 'success');
-                } catch (error) {
-                    console.error('Ошибка при получении информации о батарее:', error);
-                    setInfoState(batteryInfoElement, 'Ошибка получения батареи.', 'error');
-                }
-            } else {
-                setInfoState(batteryInfoElement, 'API Батареи недоступен.', 'warning');
-            }
-        }
-
-        function getScreenResolution() {
-            const screenResolutionElement = document.getElementById('screen-resolution');
-            setInfoState(screenResolutionElement, `${screen.width}x${screen.height} пикселей`, 'success');
-        }
-
-        function updateTimeAndLanguage() {
-            const timeInfoElement = document.getElementById('time-info');
-            const languageInfoElement = document.getElementById('language-info');
-            
-            const now = new Date();
-            
-            // Время
-            let timeOutput = `Устройство: ${now.toLocaleString()}`;
-            if (detectedTimeZone) {
-                try {
-                    const localTimeAtLocation = now.toLocaleString('ru-RU', { timeZone: detectedTimeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', year: 'numeric', month: 'numeric', day: 'numeric' });
-                    timeOutput += `<br/>По местоположению: ${localTimeAtLocation}`;
-                } catch (e) {
-                    console.error('Ошибка при получении времени по часовому поясу:', e);
-                    timeOutput += `<br/>По местоположению: Ошибка (${detectedTimeZone})`;
-                }
-            } else {
-                timeOutput += '<br/>По местоположению: Ожидание данных...';
-            }
-            timeInfoElement.innerHTML = timeOutput;
-            timeInfoElement.classList.remove('loading');
-            timeInfoElement.classList.add('multi-line');
-            // Если данные по местоположению не получены, оставляем warning
-            if (!detectedTimeZone) {
-                timeInfoElement.classList.add('warning');
-            } else {
-                timeInfoElement.classList.add('success');
-            }
-
-
-            // Языки
-            const deviceLanguages = (navigator.languages && navigator.languages.length > 0) ? navigator.languages.join(', ') : 'Неизвестен';
-            const browserLanguage = navigator.language || 'Неизвестен';
-            languageInfoElement.innerHTML = `Устройство: ${deviceLanguages}<br/>Браузер: ${browserLanguage}`;
-            languageInfoElement.classList.remove('loading');
-            languageInfoElement.classList.add('multi-line', 'success');
-        }
-
-        // --- Функция копирования ---
-        async function copyCardInfo(event) {
-            const card = event.currentTarget;
-            const titleElement = card.querySelector('h2');
-            const valueElement = card.querySelector('.info-value');
-            const copiedMessage = card.querySelector('.copied-message');
-
-            if (!titleElement || !valueElement || !copiedMessage) {
-                return;
-            }
-
-            const title = titleElement.textContent.trim();
-            const value = valueElement.innerHTML.replace(/<br\s*\/?>/gi, '\n').trim(); // Обработка multi-line
-            const textToCopy = `${title}: ${value}`;
-
-            try {
-                await navigator.clipboard.writeText(textToCopy);
-                copiedMessage.classList.add('show');
-                setTimeout(() => copiedMessage.classList.remove('show'), 1000);
-            } catch (err) {
-                console.error('Не удалось скопировать текст: ', err);
-                alert('Не удалось скопировать текст. Разрешите доступ к буферу обмена.');
-            }
-        }
-
-        // --- Инициализация при загрузке DOM ---
-        document.addEventListener('DOMContentLoaded', () => {
-            getIpAndLocation(); // Запускает цепочку получения IP, местоположения и обновления времени
-            getWebRTCInfo();
-            getUserAgent();
-            getBrowserAndOSInfo();
-            getBatteryInfo();
-            getScreenResolution();
-
-            // Обновляем время и языки каждую секунду (языки меняться не будут, но время будет обновляться)
-            setInterval(updateTimeAndLanguage, 1000); 
-
-            // Навешиваем обработчики копирования
-            document.querySelectorAll('.info-card').forEach(card => {
-                card.addEventListener('click', copyCardInfo);
-            });
-        });
+        // Вызов функций при загрузке страницы
+        window.onload = () => {
+            getIPv4();
+            getIPv6();
+        };
     </script>
 </body>
 </html>
