@@ -3,622 +3,651 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Информация о вас</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>Ваш цифровой след</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <style>
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            display: flex;
-            flex-direction: column; /* Изменено на столбец */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #e9ecef; /* Более мягкий фон */
+        :root {
+            --primary-color: #4361ee;
+            --primary-light: #4895ef;
+            --primary-dark: #3a0ca3;
+            --secondary-color: #4cc9f0;
+            --warning-color: #ffd166;
+            --error-color: #ef476f;
+            --success-color: #06d6a0;
+            --dark-text: #212529;
+            --light-text: #6c757d;
+            --card-bg: #ffffff;
+            --body-bg: #f8f9fa;
+            --header-bg: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.05), 0 6px 6px rgba(0, 0, 0, 0.07);
+            --hover-shadow: 0 14px 28px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --border-radius: 16px;
+            --card-border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
             box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--body-bg);
+            color: var(--dark-text);
             line-height: 1.6;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
+        
         .header {
-            width: 100%;
-            max-width: 900px;
+            background: var(--header-bg);
+            color: white;
+            padding: 3rem 1rem;
             text-align: center;
-            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+            opacity: 0.2;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
         .header h1 {
-            color: #343a40;
-            font-size: 2.8em; /* Более крупный заголовок */
-            margin-bottom: 10px;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        
         .header p {
-            color: #6c757d;
-            font-size: 1.1em;
+            font-size: 1.2rem;
+            font-weight: 300;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0.9;
         }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: -3rem auto 2rem;
+            padding: 0 1rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .cards-section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin: 2rem 0 1rem;
+            padding-left: 0.5rem;
+            position: relative;
+        }
+        
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 1.5rem;
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+        
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Адаптивная сетка */
-            gap: 25px; /* Увеличенный отступ между карточками */
-            max-width: 900px;
-            width: 100%;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
         }
+        
         .info-card {
-            background-color: #ffffff;
-            padding: 25px;
-            border-radius: 12px; /* Более скругленные углы */
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* Более выраженная тень */
-            text-align: center;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            cursor: pointer; /* Добавлено для индикации кликабельности */
-            position: relative; /* Для позиционирования сообщения о копировании */
-            overflow: hidden; /* Чтобы текст не выходил за границы при копировании */
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: var(--card-border);
         }
+        
         .info-card:hover {
-            transform: translateY(-5px); /* Легкий эффект при наведении */
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
         }
+        
         .info-card h2 {
-            color: #495057;
-            font-size: 1.5em; /* Заголовки в карточках */
-            margin-bottom: 15px;
-            border-bottom: 2px solid #e9ecef; /* Разделитель */
-            padding-bottom: 10px;
+            font-size: 1.2rem;
+            color: var(--dark-text);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
+        
+        .info-card h2 i {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+        
         .info-value {
-            font-size: 1.6em; /* Крупные значения */
-            color: #007bff;
-            font-weight: 700; /* Жирный шрифт */
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            font-weight: 600;
             display: block;
-            margin-top: 10px;
+            margin-top: 0.5rem;
             word-wrap: break-word;
+            line-height: 1.4;
         }
-        .info-value.multi-line { /* Для нескольких строк в значении */
-            font-size: 1.2em; /* Чуть меньше для нескольких строк */
-            line-height: 1.8;
+        
+        .info-value.multi-line {
+            font-size: 1.1rem;
+            line-height: 1.6;
         }
+        
         .loading {
-            color: #888;
-            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--light-text);
+            font-size: 1rem;
         }
+        
+        .loading::after {
+            content: "";
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid var(--primary-light);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         .warning {
-            color: #ffc107; /* Желтый для предупреждений */
-            font-weight: 400;
+            color: var(--warning-color);
         }
+        
         .error {
-            color: #dc3545; /* Красный для ошибок */
-            font-weight: 400;
+            color: var(--error-color);
         }
+        
         .note {
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--light-text);
+            margin-top: 0.8rem;
+            font-style: italic;
         }
+        
         .copied-message {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 123, 255, 0.9); /* Полупрозрачный синий фон */
+            background: rgba(67, 97, 238, 0.95);
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 1.8em;
-            font-weight: bold;
+            font-size: 1.2rem;
+            font-weight: 600;
             opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            border-radius: 12px;
-            pointer-events: none; /* Чтобы не блокировал клики на карточку */
+            transition: opacity 0.3s ease;
+            border-radius: var(--border-radius);
+            transform: translateY(5px);
+            pointer-events: none;
         }
+        
         .copied-message.show {
             opacity: 1;
+            transform: translateY(0);
         }
-
-        /* Адаптация для мобильных устройств */
+        
+        .copied-message i {
+            margin-right: 0.5rem;
+        }
+        
+        .footer {
+            background: var(--dark-text);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: auto;
+            font-size: 0.9rem;
+        }
+        
+        .footer p {
+            opacity: 0.8;
+        }
+        
+        .footer a {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .last-update {
+            display: block;
+            text-align: center;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: var(--light-text);
+        }
+        
+        .refresh-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto 2rem;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .refresh-button:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .refresh-button i {
+            margin-right: 0.5rem;
+        }
+        
+        /* Стили для пульсирующей анимации */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Адаптивность */
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 2em;
+                font-size: 2rem;
             }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .container {
+                margin-top: -2rem;
+            }
+            
             .info-grid {
-                grid-template-columns: 1fr; /* Одна колонка на мобильных */
-                gap: 20px;
+                grid-template-columns: 1fr;
             }
-            .info-card {
-                padding: 20px;
-            }
-            .info-card h2 {
-                font-size: 1.3em;
-            }
+            
             .info-value {
-                font-size: 1.4em;
+                font-size: 1.3rem;
             }
-            .info-value.multi-line {
-                font-size: 1.1em;
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 2rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.7rem;
+            }
+            
+            .section-title {
+                font-size: 1.3rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Ваша цифровая подпись в сети</h1>
-        <p>Узнайте подробнее, какую информацию ваш браузер и устройство могут раскрывать в интернете.</p>
-    </div>
-
-    <div class="info-grid">
-
-        <div class="info-card" data-copy-target="ipv4-address">
-            <h2>Ваш IP-адрес (IPv4)</h2>
-            <span id="ipv4-address" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
+    <header class="header">
+        <div class="header-content">
+            <h1>Ваш цифровой след</h1>
+            <p>Узнайте, какую информацию о вас может получить любой веб-сайт при посещении</p>
         </div>
-
-        <div class="info-card" data-copy-target="ipv6-address">
-            <h2>Ваш IP-адрес (IPv6)</h2>
-            <span id="ipv6-address" class="info-value loading">Загрузка...</span>
-            <p class="note">Отображает ваш IPv6-адрес, если доступен. Если IPv6-соединение отсутствует, может быть показан ваш IPv4-адрес, используемый для IPv6-сервисов.</p>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="location-info">
-            <h2>Страна и Город</h2>
-            <span id="location-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
+    </header>
+    
+    <div class="container">
+        <button id="refresh-button" class="refresh-button">
+            <i class="fas fa-sync-alt"></i> Обновить данные
+        </button>
+        
+        <div class="cards-section">
+            <h2 class="section-title">Сетевая информация</h2>
+            <div class="info-grid">
+                <div class="info-card" data-copy-target="ipv4-address">
+                    <h2><i class="fas fa-network-wired"></i> IP-адрес (IPv4)</h2>
+                    <span id="ipv4-address" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="ipv6-address">
+                    <h2><i class="fas fa-network-wired"></i> IP-адрес (IPv6)</h2>
+                    <span id="ipv6-address" class="info-value loading">Загрузка...</span>
+                    <p class="note">Показывает ваш IPv6-адрес, если он доступен.</p>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="webrtc-support">
+                    <h2><i class="fas fa-plug"></i> Поддержка WebRTC</h2>
+                    <span id="webrtc-support" class="info-value loading">Проверка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="webrtc-leak">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Обнаруженные WebRTC IP</h2>
+                    <span id="webrtc-leak" class="info-value loading">Проверка...</span>
+                    <p class="note">Может показывать локальные IP или реальный IP при использовании VPN.</p>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+            </div>
         </div>
         
-        <div class="info-card" data-copy-target="latitude-longitude">
-            <h2>Широта и Долгота</h2>
-            <span id="latitude-longitude" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
+        <div class="cards-section">
+            <h2 class="section-title">Местоположение</h2>
+            <div class="info-grid">
+                <div class="info-card" data-copy-target="location-info">
+                    <h2><i class="fas fa-map-marker-alt"></i> Страна и Город</h2>
+                    <span id="location-info" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="latitude-longitude">
+                    <h2><i class="fas fa-globe-americas"></i> Координаты</h2>
+                    <span id="latitude-longitude" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="time-info">
+                    <h2><i class="fas fa-clock"></i> Время</h2>
+                    <span id="time-info" class="info-value multi-line loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+            </div>
         </div>
-
-        <div class="info-card" data-copy-target="webrtc-support">
-            <h2>Поддержка WebRTC</h2>
-            <span id="webrtc-support" class="info-value loading">Проверка...</span>
-            <div class="copied-message">Скопировано!</div>
+        
+        <div class="cards-section">
+            <h2 class="section-title">Информация об устройстве</h2>
+            <div class="info-grid">
+                <div class="info-card" data-copy-target="browser-info">
+                    <h2><i class="fas fa-globe"></i> Браузер</h2>
+                    <span id="browser-info" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="os-info">
+                    <h2><i class="fas fa-laptop"></i> Операционная система</h2>
+                    <span id="os-info" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="user-agent">
+                    <h2><i class="fas fa-code"></i> User-Agent</h2>
+                    <span id="user-agent" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="screen-resolution">
+                    <h2><i class="fas fa-desktop"></i> Разрешение экрана</h2>
+                    <span id="screen-resolution" class="info-value loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="battery-info">
+                    <h2><i class="fas fa-battery-three-quarters"></i> Батарея</h2>
+                    <span id="battery-info" class="info-value loading">Загрузка...</span>
+                    <p class="note">Может быть недоступно на некоторых браузерах.</p>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+                
+                <div class="info-card" data-copy-target="language-info">
+                    <h2><i class="fas fa-language"></i> Языки</h2>
+                    <span id="language-info" class="info-value multi-line loading">Загрузка...</span>
+                    <div class="copied-message"><i class="fas fa-check-circle"></i> Скопировано!</div>
+                </div>
+            </div>
         </div>
-
-        <div class="info-card" data-copy-target="webrtc-leak">
-            <h2>Обнаруженные WebRTC IP</h2>
-            <span id="webrtc-leak" class="info-value loading">Проверка...</span>
-            <p class="note">Может показывать локальные IP или реальный IP при использовании VPN.</p>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="user-agent">
-            <h2>User-Agent</h2>
-            <span id="user-agent" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="browser-info">
-            <h2>Браузер</h2>
-            <span id="browser-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="os-info">
-            <h2>Операционная система</h2>
-            <span id="os-info" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="battery-info">
-            <h2>Батарея</h2>
-            <span id="battery-info" class="info-value loading">Загрузка...</span>
-            <p class="note">Может быть недоступно (например, в Firefox или без HTTPS).</p>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="screen-resolution">
-            <h2>Разрешение экрана</h2>
-            <span id="screen-resolution" class="info-value loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="time-info">
-            <h2>Время</h2>
-            <span id="time-info" class="info-value multi-line loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
-        <div class="info-card" data-copy-target="language-info">
-            <h2>Языки</h2>
-            <span id="language-info" class="info-value multi-line loading">Загрузка...</span>
-            <div class="copied-message">Скопировано!</div>
-        </div>
-
+        
+        <span class="last-update">Последнее обновление: <span id="last-update-time">сейчас</span></span>
     </div>
-
+    
+    <footer class="footer">
+        <p>Этот сайт не сохраняет никакую информацию о вас.</p>
+        <p>Все данные обрабатываются только в вашем браузере.</p>
+    </footer>
+    
     <script>
-        let detectedTimeZone = null; // Глобальная переменная для хранения часового пояса
-
-        // Функция для проверки, является ли строка действительным IP-адресом
+        // Глобальные переменные
+        let detectedTimeZone = null; // Временная зона по местоположению
+        let detectedCountry = null; // Страна по местоположению
+        let lastUpdateTime = new Date(); // Время последнего обновления
+        
+        // Обновление времени последнего обновления
+        function updateLastUpdateTime() {
+            const timeElement = document.getElementById('last-update-time');
+            const now = new Date();
+            const diff = Math.floor((now - lastUpdateTime) / 1000);
+            
+            if (diff < 60) {
+                timeElement.textContent = `${diff} сек. назад`;
+            } else if (diff < 3600) {
+                timeElement.textContent = `${Math.floor(diff / 60)} мин. назад`;
+            } else {
+                timeElement.textContent = lastUpdateTime.toLocaleTimeString();
+            }
+        }
+        
+        // Валидация IP-адресов
         function isValidIpAddress(ip) {
             // Проверка на IPv4
             if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip)) {
                 return true;
             }
-            // Проверка на IPv6 (более надежное регулярное выражение)
-            if (/^(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:))|(([0-9a-fA-F]{1,4}:){6}(:[0-9a-fA-F]{1,4}|((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)))|(([0-9a-fA-F]{1,4}:){5}(((:[0-9a-fA-F]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)))|(([0-9a-fA-F]{1,4}:){4}(((:[0-9a-fA-F]{1,4}){1,3})|((:[0-9a-fA-F]{1,4})?:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){3}(((:[0-9a-fA-F]{1,4}){1,4})|((:[0-9a-fA-F]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){2}(((:[0-9a-fA-F]{1,4}){1,5})|((:[0-9a-fA-F]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(([0-9a-fA-F]{1,4}:){1}(((:[0-9a-fA-F]{1,4}){1,6})|((:[0-9a-fA-F]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))|(::((([0-9a-fA-F]{1,4}:){1,7})|((:[0-9a-fA-F]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))))$/.test(ip)) {
+            // Проверка на IPv6
+            if (/^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/.test(ip)) {
                 return true;
             }
             return false;
         }
-
-        // --- IP-адреса, местоположение и координаты ---
+        
+        // Получение IP-адресов и местоположения
         async function getIpAndLocation() {
             const ipv4AddressElement = document.getElementById('ipv4-address');
             const ipv6AddressElement = document.getElementById('ipv6-address');
             const locationInfoElement = document.getElementById('location-info');
             const latLonElement = document.getElementById('latitude-longitude');
-
-            let ipv4Success = false;
-            let locationSuccess = false;
-
-            // Попытка получить IPv4, местоположение и часовой пояс через freeipapi.com
+            
+            // Сначала пытаемся получить IPv4 и местоположение через ipapi.co
             try {
-                const freeIpApiResponse = await fetch('https://freeipapi.com/api/json/');
-                if (freeIpApiResponse.ok) {
-                    const freeIpApiData = await freeIpApiResponse.json();
-
-                    if (freeIpApiData && freeIpApiData.ipAddress) {
-                        ipv4AddressElement.textContent = freeIpApiData.ipAddress;
-                        ipv4Success = true;
-                        if (freeIpApiData.countryName && freeIpApiData.cityName) {
-                            locationInfoElement.textContent = `${freeIpApiData.countryName}, ${freeIpApiData.cityName}`;
-                            locationSuccess = true;
-                        } else {
-                            locationInfoElement.textContent = 'Местоположение не найдено (FreeIPAPI).';
-                            locationInfoElement.classList.add('warning');
+                const ipapiResponse = await fetch('https://ipapi.co/json/', { timeout: 5000 });
+                if (ipapiResponse.ok) {
+                    const ipapiData = await ipapiResponse.json();
+                    
+                    if (ipapiData && ipapiData.ip) {
+                        ipv4AddressElement.textContent = ipapiData.ip;
+                        ipv4AddressElement.classList.remove('loading');
+                        
+                        if (ipapiData.country_name && ipapiData.city) {
+                            locationInfoElement.textContent = `${ipapiData.country_name}, ${ipapiData.city}`;
+                            locationInfoElement.classList.remove('loading');
+                            detectedCountry = ipapiData.country_name;
                         }
-                        // Сохраняем часовой пояс для использования в карточке времени
-                        if (freeIpApiData.timeZone) {
-                            detectedTimeZone = freeIpApiData.timeZone;
+                        
+                        if (ipapiData.latitude && ipapiData.longitude) {
+                            latLonElement.textContent = `${ipapiData.latitude.toFixed(4)}, ${ipapiData.longitude.toFixed(4)}`;
+                            latLonElement.classList.remove('loading');
                         }
-                        // Отображаем широту и долготу
-                        if (freeIpApiData.latitude && freeIpApiData.longitude) {
-                            latLonElement.textContent = `Ш: ${freeIpApiData.latitude.toFixed(4)}, Д: ${freeIpApiData.longitude.toFixed(4)}`;
-                        } else {
-                            latLonElement.textContent = 'Координаты недоступны.';
-                            latLonElement.classList.add('warning');
+                        
+                        // Сохраняем часовой пояс
+                        if (ipapiData.timezone) {
+                            detectedTimeZone = ipapiData.timezone;
+                            // Обновляем время с полученным часовым поясом
+                            updateTimeInfo();
                         }
-                    } else {
-                        console.warn('freeipapi.com не вернул полные данные, пробуем запасной вариант для IPv4.');
+                        
+                        // Пробуем получить IPv6 отдельно
+                        getIPv6Address();
+                        return;
                     }
-                } else {
-                    console.warn(`freeipapi.com вернул статус ${freeIpApiResponse.status}, пробуем запасной вариант для IPv4.`);
                 }
             } catch (error) {
-                console.error('Ошибка при запросе к freeipapi.com:', error);
+                console.error('Ошибка при получении данных через ipapi.co:', error);
             }
-
-            // Если IPv4 не получен успешно через freeipapi.com, используем api.ipify.org
-            if (!ipv4Success) {
-                try {
-                    const ipifyResponse = await fetch('https://api.ipify.org?format=json');
-                    if (ipifyResponse.ok) {
-                        const ipifyData = await ipifyResponse.json();
-                        if (ipifyData.ip) {
-                            ipv4AddressElement.textContent = ipifyData.ip;
-                            locationInfoElement.textContent = 'Местоположение неизвестно (API-ошибка).';
-                            locationInfoElement.classList.add('warning');
-                            latLonElement.textContent = 'Координаты неизвестны (API-ошибка).';
-                            latLonElement.classList.add('warning');
-                            ipv4Success = true;
-                        } else {
-                            ipv4AddressElement.textContent = 'Не удалось получить IPv4 (API-ошибка).';
-                            locationInfoElement.textContent = 'Не удалось получить местоположение (API-ошибка).';
-                            latLonElement.textContent = 'Не удалось получить координаты (API-ошибка).';
-                            ipv4AddressElement.classList.add('error');
-                            locationInfoElement.classList.add('error');
-                            latLonElement.classList.add('error');
-                        }
-                    } else {
-                         console.error(`api.ipify.org вернул статус ${ipifyResponse.status}.`);
-                         ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
-                         locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
-                         latLonElement.textContent = 'Ошибка сети при получении координат.';
-                         ipv4AddressElement.classList.add('error');
-                         locationInfoElement.classList.add('error');
-                         latLonElement.classList.add('error');
-                    }
-                } catch (error) {
-                    console.error('Ошибка при запросе к api.ipify.org:', error);
-                    ipv4AddressElement.textContent = 'Ошибка сети при получении IPv4.';
-                    locationInfoElement.textContent = 'Ошибка сети при получении местоположения.';
-                    latLonElement.textContent = 'Ошибка сети при получении координат.';
-                    ipv4AddressElement.classList.add('error');
-                    locationInfoElement.classList.add('error');
-                    latLonElement.classList.add('error');
-                }
-            }
-
-            // Получение IPv6 через api64.ipify.org
+            
+            // Если ipapi.co не сработал, пробуем ip-api.com
             try {
-                const ipv6Response = await fetch('https://api64.ipify.org?format=json');
+                const ipApiResponse = await fetch('https://ip-api.com/json/?fields=status,country,city,lat,lon,timezone,query', { timeout: 5000 });
+                if (ipApiResponse.ok) {
+                    const ipApiData = await ipApiResponse.json();
+                    
+                    if (ipApiData && ipApiData.status === 'success') {
+                        ipv4AddressElement.textContent = ipApiData.query;
+                        ipv4AddressElement.classList.remove('loading');
+                        
+                        if (ipApiData.country && ipApiData.city) {
+                            locationInfoElement.textContent = `${ipApiData.country}, ${ipApiData.city}`;
+                            locationInfoElement.classList.remove('loading');
+                            detectedCountry = ipApiData.country;
+                        }
+                        
+                        if (ipApiData.lat && ipApiData.lon) {
+                            latLonElement.textContent = `${ipApiData.lat.toFixed(4)}, ${ipApiData.lon.toFixed(4)}`;
+                            latLonElement.classList.remove('loading');
+                        }
+                        
+                        // Сохраняем часовой пояс
+                        if (ipApiData.timezone) {
+                            detectedTimeZone = ipApiData.timezone;
+                            // Обновляем время с полученным часовым поясом
+                            updateTimeInfo();
+                        }
+                        
+                        // Пробуем получить IPv6 отдельно
+                        getIPv6Address();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при получении данных через ip-api.com:', error);
+            }
+            
+            // Если оба сервиса не сработали, используем запасной вариант для IPv4
+            try {
+                const ipifyResponse = await fetch('https://api.ipify.org?format=json', { timeout: 3000 });
+                if (ipifyResponse.ok) {
+                    const ipifyData = await ipifyResponse.json();
+                    
+                    if (ipifyData && ipifyData.ip) {
+                        ipv4AddressElement.textContent = ipifyData.ip;
+                        ipv4AddressElement.classList.remove('loading');
+                        
+                        // Поскольку местоположение недоступно, отображаем сообщение об этом
+                        locationInfoElement.textContent = 'Местоположение недоступно';
+                        locationInfoElement.classList.remove('loading');
+                        locationInfoElement.classList.add('warning');
+                        
+                        latLonElement.textContent = 'Координаты недоступны';
+                        latLonElement.classList.remove('loading');
+                        latLonElement.classList.add('warning');
+                        
+                        // Устанавливаем часовой пояс браузера как запасной вариант
+                        detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        updateTimeInfo();
+                        
+                        // Пробуем получить IPv6 отдельно
+                        getIPv6Address();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при получении IPv4 через api.ipify.org:', error);
+            }
+            
+            // Если все API не сработали
+            ipv4AddressElement.textContent = 'Не удалось получить IPv4';
+            ipv4AddressElement.classList.remove('loading');
+            ipv4AddressElement.classList.add('error');
+            
+            locationInfoElement.textContent = 'Местоположение недоступно';
+            locationInfoElement.classList.remove('loading');
+            locationInfoElement.classList.add('error');
+            
+            latLonElement.textContent = 'Координаты недоступны';
+            latLonElement.classList.remove('loading');
+            latLonElement.classList.add('error');
+            
+            // Устанавливаем часовой пояс браузера как запасной вариант
+            detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            updateTimeInfo();
+            
+            // Пробуем получить IPv6 отдельно
+            getIPv6Address();
+        }
+        
+        // Получение IPv6-адреса
+        async function getIPv6Address() {
+            const ipv6AddressElement = document.getElementById('ipv6-address');
+            
+            try {
+                // Используем специализированный сервис для получения IPv6
+                const ipv6Response = await fetch('https://api64.ipify.org?format=json', { timeout: 5000 });
+                
                 if (ipv6Response.ok) {
                     const ipv6Data = await ipv6Response.json();
-                    if (ipv6Data.ip) {
-                        ipv6AddressElement.textContent = ipv6Data.ip;
+                    
+                    if (ipv6Data && ipv6Data.ip) {
+                        // Проверяем, что это действительно IPv6, а не IPv4
+                        if (ipv6Data.ip.includes(':')) {
+                            ipv6AddressElement.textContent = ipv6Data.ip;
+                        } else {
+                            ipv6AddressElement.textContent = 'IPv6 недоступен (получен IPv4)';
+                            ipv6AddressElement.classList.add('warning');
+                        }
                     } else {
-                        ipv6AddressElement.textContent = 'IPv6 не обнаружен или API недоступен.';
+                        ipv6AddressElement.textContent = 'IPv6 не обнаружен';
+                        ipv6AddressElement.classList.add('warning');
                     }
                 } else {
-                    console.error(`api64.ipify.org вернул статус ${ipv6Response.status}.`);
-                    ipv6AddressElement.textContent = 'Ошибка API при получении IPv6.';
-                }
-            } catch (error) {
-                console.error('Ошибка сети при получении IPv6:', error);
-                ipv6AddressElement.textContent = 'Ошибка сети при получении IPv6.';
-                ipv6AddressElement.classList.add('error');
-            } finally {
-                ipv4AddressElement.classList.remove('loading');
-                ipv6AddressElement.classList.remove('loading');
-                locationInfoElement.classList.remove('loading');
-                latLonElement.classList.remove('loading');
-                // После получения информации об IP и местоположении, обновляем время
-                updateTimeAndLanguage();
-            }
-        }
-
-        // --- WebRTC ---
-        async function getWebRTCInfo() {
-            const webrtcSupportElement = document.getElementById('webrtc-support');
-            const webrtcLeakElement = document.getElementById('webrtc-leak');
-
-            if (typeof RTCPeerConnection === 'undefined') {
-                webrtcSupportElement.textContent = 'WebRTC не поддерживается.';
-                webrtcSupportElement.classList.add('error');
-                webrtcLeakElement.textContent = 'N/A';
-                webrtcLeakElement.classList.add('error');
-                webrtcSupportElement.classList.remove('loading');
-                webrtcLeakElement.classList.remove('loading');
-                return;
-            }
-
-            webrtcSupportElement.textContent = 'Поддерживается.';
-            webrtcSupportElement.classList.remove('loading');
-
-            try {
-                const pc = new RTCPeerConnection({ iceServers: [] });
-                const candidates = [];
-
-                pc.onicecandidate = function(event) {
-                    if (event.candidate) {
-                        const candidateString = event.candidate.candidate;
-                        const parts = candidateString.split(' ');
-                        const ipAddress = parts[4];
-                        const candidateType = parts[7];
-
-                        if (candidateType === 'host' && isValidIpAddress(ipAddress)) {
-                            if (!candidates.includes(ipAddress)) {
-                                candidates.push(ipAddress);
-                            }
-                        }
-                    } else {
-                        const ipList = candidates.length > 0 ? candidates.join(', ') : 'Не обнаружено (или заблокировано).';
-                        webrtcLeakElement.textContent = ipList;
-                        webrtcLeakElement.classList.remove('loading');
-                        if (candidates.length > 0 && ipList !== 'Не обнаружено (или заблокировано).') {
-                             webrtcLeakElement.classList.add('warning');
-                        }
-                    }
-                };
-
-                pc.createDataChannel('');
-                await pc.createOffer().then(offer => pc.setLocalDescription(offer));
-
-            } catch (error) {
-                console.error('Ошибка WebRTC утечки:', error);
-                webrtcLeakElement.textContent = 'Ошибка при проверке WebRTC утечки.';
-                webrtcLeakElement.classList.add('error');
-                webrtcLeakElement.classList.remove('loading');
-            }
-        }
-
-        // --- User-Agent ---
-        function getUserAgent() {
-            const userAgentElement = document.getElementById('user-agent');
-            userAgentElement.textContent = navigator.userAgent;
-            userAgentElement.classList.remove('loading');
-        }
-
-        // --- Браузер и ОС ---
-        async function getBrowserAndOSInfo() {
-            const browserInfoElement = document.getElementById('browser-info');
-            const osInfoElement = document.getElementById('os-info');
-            let browserName = "Неизвестен";
-            let browserVersion = "Неизвестна";
-            let osName = "Неизвестна";
-            let osVersion = "";
-
-            if (navigator.userAgentData) { // User-Agent Client Hints
-                try {
-                    const uaData = await navigator.userAgentData.getHighEntropyValues(["fullVersionList", "platform", "platformVersion"]);
-                    const brands = uaData.fullVersionList || uaData.brands;
-
-                    if (brands && brands.length > 0) {
-                        for (const brand of brands) {
-                            if (!brand.brand.includes("Not")) {
-                                browserName = brand.brand;
-                                browserVersion = brand.version;
-                                break;
-                            }
-                        }
-                    }
-
-                    osName = uaData.platform || "Неизвестна";
-                    osVersion = uaData.platformVersion ? ` ${uaData.platformVersion}` : "";
-
-                } catch (error) {
-                    console.error('Ошибка Client Hints:', error);
-                    getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
-                }
-            } else {
-                getBrowserAndOSInfoLegacy(browserInfoElement, osInfoElement);
-            }
-
-            browserInfoElement.textContent = `${browserName}${browserVersion !== "Неизвестна" ? ` (Версия: ${browserVersion})` : ""}`;
-            osInfoElement.textContent = `${osName}${osVersion ? ' ' + osVersion : ''}`;
-            browserInfoElement.classList.remove('loading');
-            osInfoElement.classList.remove('loading');
-        }
-
-        function getBrowserAndOSInfoLegacy(browserElement, osElement) {
-            const userAgent = navigator.userAgent;
-            let browserName = "Неизвестен (по User-Agent)";
-            let browserVersion = "Неизвестна";
-            let osName = "Неизвестна (по User-Agent)";
-            let osVersion = "";
-
-            if (userAgent.includes("Chrome") && !userAgent.includes("Edg") && !userAgent.includes("Opr")) {
-                browserName = "Google Chrome";
-                browserVersion = userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Edg")) {
-                browserName = "Microsoft Edge";
-                browserVersion = userAgent.match(/Edg\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Opera") || userAgent.includes("Opr")) {
-                browserName = "Opera";
-                browserVersion = userAgent.match(/(Opera|Opr)\/([0-9.]+)/)?.[2] || "Неизвестна";
-            } else if (userAgent.includes("Safari")) {
-                browserName = "Apple Safari";
-                browserVersion = userAgent.match(/Version\/([0-9.]+).*Safari/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("Firefox")) {
-                browserName = "Mozilla Firefox";
-                browserVersion = userAgent.match(/Firefox\/([0-9.]+)/)?.[1] || "Неизвестна";
-            } else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) {
-                browserName = "Internet Explorer";
-                browserVersion = userAgent.match(/(MSIE |rv:)([0-9.]+)/)?.[2] || "Неизвестна";
-            }
-
-            if (userAgent.includes("Windows NT 10.0")) { osName = "Windows"; osVersion = "10/11"; }
-            else if (userAgent.includes("Windows NT 6.3")) { osName = "Windows"; osVersion = "8.1"; }
-            else if (userAgent.includes("Windows NT 6.2")) { osName = "Windows"; osVersion = "8"; }
-            else if (userAgent.includes("Windows NT 6.1")) { osName = "Windows"; osVersion = "7"; }
-            else if (userAgent.includes("Android")) { osName = "Android"; osVersion = userAgent.match(/Android ([0-9.]+)/)?.[1] || ""; }
-            else if (userAgent.includes("Mac OS X")) { osName = "macOS"; osVersion = userAgent.match(/Mac OS X ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
-            else if (userAgent.includes("Linux")) { osName = "Linux"; }
-            else if (userAgent.includes("iOS")) { osName = "iOS"; osVersion = userAgent.match(/OS ([0-9_.]+)/)?.[1]?.replace(/_/g, '.') || ""; }
-            else if (navigator.platform.includes("Win")) { osName = "Windows"; }
-            else if (navigator.platform.includes("Mac")) { osName = "macOS"; }
-            else if (navigator.platform.includes("Linux")) { osName = "Linux"; }
-            else if (navigator.platform.includes("iPhone") || navigator.platform.includes("iPad") || navigator.platform.includes("iPod")) { osName = "iOS"; }
-
-
-            browserElement.textContent = `${browserName}${browserVersion !== "Неизвестна" ? ` (Версия: ${browserVersion})` : ""}`;
-            osElement.textContent = `${osName}${osVersion ? ' ' + osVersion : ''}`;
-        }
-
-        // --- Батарея ---
-        async function getBatteryInfo() {
-            const batteryInfoElement = document.getElementById('battery-info');
-            if ('getBattery' in navigator) {
-                try {
-                    const battery = await navigator.getBattery();
-                    const level = (battery.level * 100).toFixed(0);
-                    const charging = battery.charging ? ' (Заряжается)' : ' (Не заряжается)';
-                    batteryInfoElement.textContent = `${level}%${charging}`;
-                } catch (error) {
-                    console.error('Ошибка при получении информации о батарее:', error);
-                    batteryInfoElement.textContent = 'Ошибка получения батареи.';
-                    batteryInfoElement.classList.add('error');
-                }
-            } else {
-                batteryInfoElement.textContent = 'API Батареи недоступен.';
-                batteryInfoElement.classList.add('warning');
-            }
-            batteryInfoElement.classList.remove('loading');
-        }
-
-        // --- Разрешение экрана ---
-        function getScreenResolution() {
-            const screenResolutionElement = document.getElementById('screen-resolution');
-            screenResolutionElement.textContent = `${screen.width}x${screen.height} пикселей`;
-            screenResolutionElement.classList.remove('loading');
-        }
-
-        // --- Время и язык устройства/браузера ---
-        function updateTimeAndLanguage() {
-            const timeInfoElement = document.getElementById('time-info');
-            const languageInfoElement = document.getElementById('language-info');
-            
-            const now = new Date();
-            
-            // Информация о времени
-            let timeOutput = `Устройство: ${now.toLocaleString()}`;
-            if (detectedTimeZone) {
-                try {
-                    const localTimeAtLocation = now.toLocaleString('ru-RU', { timeZone: detectedTimeZone });
-                    timeOutput += `<br/>По местоположению: ${localTimeAtLocation}`;
-                } catch (e) {
-                    console.error('Ошибка при получении времени по часовому поясу:', e);
-                    timeOutput += `<br/>По местоположению: Ошибка (${detectedTimeZone})`;
-                }
-            } else {
-                timeOutput += '<br/>По местоположению: Ожидание...';
-            }
-            timeInfoElement.innerHTML = timeOutput;
-            timeInfoElement.classList.remove('loading');
-            timeInfoElement.classList.add('multi-line'); // Добавляем класс для многострочного отображения
-
-            // Информация о языках
-            const deviceLanguages = (navigator.languages && navigator.languages.length > 0) ? navigator.languages.join(', ') : 'Неизвестен';
-            const browserLanguage = navigator.language || 'Неизвестен';
-            languageInfoElement.innerHTML = `Устройство: ${deviceLanguages}<br/>Браузер: ${browserLanguage}`;
-            languageInfoElement.classList.remove('loading');
-            languageInfoElement.classList.add('multi-line'); // Добавляем класс для многострочного отображения
-        }
-
-        // --- Функция копирования ---
-        async function copyCardInfo(event) {
-            const card = event.currentTarget;
-            const titleElement = card.querySelector('h2');
-            const valueElement = card.querySelector('.info-value');
-            const copiedMessage = card.querySelector('.copied-message');
-
-            if (!titleElement || !valueElement || !copiedMessage) {
-                console.error("Не удалось найти элементы для копирования в карточке.");
-                return;
-            }
-
-            const title = titleElement.textContent.trim();
-            // Для multi-line карточек, копируем innerText, но заменяем <br/> на переводы строки
-            const value = valueElement.innerHTML.replace(/<br\s*\/?>/gi, '\n').trim();
-            const textToCopy = `${title}: ${value}`;
-
-            try {
-                await navigator.clipboard.writeText(textToCopy);
-
-                copiedMessage.classList.add('show');
-                setTimeout(() => {
-                    copiedMessage.classList.remove('show');
-                }, 1000);
-
-            } catch (err) {
-                console.error('Не удалось скопировать текст: ', err);
-                alert('Не удалось скопировать текст. Возможно, браузер не поддерживает или не дал разрешение.');
-            }
-        }
-
-
-        // --- Вызов всех функций ---
-        document.addEventListener('DOMContentLoaded', () => {
-            getIpAndLocation(); // Вызов этой функции теперь также запускает updateTimeAndLanguage в finally
-            getWebRTCInfo();
-            getUserAgent();
-            getBrowserAndOSInfo();
-            getBatteryInfo();
-            getScreenResolution();
-
-            // updateTimeAndLanguage() будет вызываться также после получения данных об IP/местоположении
-            // чтобы обновить время по местоположению
-            setInterval(updateTimeAndLanguage, 1000); // Обновляем время каждую секунду
-
-            const infoCards = document.querySelectorAll('.info-card');
-            infoCards.forEach(card => {
-                card.addEventListener('click', copyCardInfo);
-            });
-        });
-    </script>
-</body>
-</html>
+                    ipv6AddressElement.textContent
