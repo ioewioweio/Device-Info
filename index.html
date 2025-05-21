@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моя информация</title>
+    <title>Моя детальная информация</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* Changed to flex-start for scrolling */
+            justify-content: flex-start;
             min-height: 100vh;
             margin: 0;
             background-color: #f0f2f5;
@@ -24,8 +24,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 600px; /* Max width for content */
-            margin-bottom: 20px; /* Space at bottom */
+            max-width: 700px; /* Немного шире для детальной информации */
+            margin-bottom: 20px;
         }
         h2 {
             margin-top: 0;
@@ -43,26 +43,24 @@
         .label {
             font-weight: 600;
             color: #555;
-            min-width: 100px; /* Align labels a bit */
+            min-width: 120px; /* Увеличено для лучшего выравнивания */
             display: inline-block;
+            vertical-align: top;
         }
         .value {
             color: #007bff;
             font-weight: 500;
             word-break: break-all;
         }
-        .loading {
-            color: #777;
-        }
-        .error {
-            color: #dc3545;
-        }
+        .loading { color: #777; }
+        .error { color: #dc3545; }
         .comment {
             font-size: 0.8em;
             color: #666;
             display: block;
             margin-top: 2px;
         }
+        .error.comment { color: #c00; }
         #userAgent.value {
              font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
              font-size: 0.9em;
@@ -73,8 +71,10 @@
             padding-top: 10px;
             border-top: 1px dashed #ddd;
             color: #444;
+            line-height: 1.4;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/src/ua-parser.min.js"></script>
 </head>
 <body>
     <div class="info-container">
@@ -127,7 +127,7 @@
     </div>
 
     <script>
-        async function fetchWithTimeout(resource, options = {}, timeout = 5000) {
+        async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             options.signal = controller.signal;
@@ -144,30 +144,29 @@
         async function fetchIP(url, elementId, ipType) {
             const element = document.getElementById(elementId);
             element.className = 'loading value';
+            element.textContent = 'Загрузка...';
             try {
                 const response = await fetchWithTimeout(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const ip = (await response.text()).trim();
-
-                let isValid = false;
-                if (ipType === 'ipv4') {
-                    isValid = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip);
-                } else if (ipType === 'ipv6') {
-                    isValid = ip.includes(':') && ip.length >= 3; // Basic check
-                }
-                
+                // Проверка IP адреса (можно улучшить регулярными выражениями)
+                let isValid = (ipType === 'ipv4') ? /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) : (ip.includes(':') && ip.length >= 3);
                 if (isValid) {
                     element.textContent = ip;
                     element.className = 'value';
                 } else {
-                    throw new Error('Invalid IP format received');
+                    throw new Error('Неверный формат IP');
                 }
             } catch (error) {
-                console.error(`Ошибка при получении ${ipType} с ${url}:`, error);
-                element.textContent = (ipType === 'ipv6') ? 'Недоступен' : 'Не удалось определить';
-                element.className = 'error value';
+                console.warn(`Ошибка при получении ${ipType} (${url}):`, error.message); // Используем warn для ожидаемых ошибок
+                element.textContent = (ipType === 'ipv6' && error.message.includes('ERR_NAME_NOT_RESOLVED')) ? 'Недоступен (DNS)' : 
+                                     (ipType === 'ipv6' ? 'Недоступен' : 'Не удалось определить');
+                element.className = (ipType === 'ipv6' && error.message.includes('ERR_NAME_NOT_RESOLVED')) ? 'value' : 'error value'; // Не ошибка, если просто нет IPv6
             }
         }
+        
+        // КРАЙНЕ ВАЖНО: Убедитесь, что URL ниже ПРЯМОЙ и не обернут в google.com/url/...
+        const GEO_API_URL = 'https://ip-api.com/json/?fields=status,message,country,city,lat,lon,query';
 
         async function fetchGeoIP() {
             const geoCountry = document.getElementById('geoCountry');
@@ -181,10 +180,16 @@
                 el.className = 'loading value';
             });
             detectedIpEl.textContent = '';
+            detectedIpEl.className = 'comment';
 
             try {
-                const response = await fetchWithTimeout('https://ip-api.com/json/?fields=status,message,country,city,lat,lon,query');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                console.log("Запрос геолокации на:", GEO_API_URL); // Логируем URL для проверки
+                const response = await fetchWithTimeout(GEO_API_URL);
+                if (!response.ok) {
+                    let errorTextDetail = `HTTP статус: ${response.status}`;
+                    try { const apiError = await response.text(); errorTextDetail += ` - ${apiError.substring(0,100)}`;} catch (e) {}
+                    throw new Error(errorTextDetail);
+                }
                 const data = await response.json();
 
                 if (data.status === 'success') {
@@ -195,16 +200,14 @@
                     detectedIpEl.textContent = `(Данные для IP: ${data.query})`;
                     [geoCountry, geoCity, geoLat, geoLon].forEach(el => el.className = 'value');
                 } else {
-                    throw new Error(data.message || 'Не удалось получить данные GeoIP');
+                    throw new Error(data.message || 'API вернул статус: fail');
                 }
             } catch (error) {
                 console.error('Ошибка при получении GeoIP:', error);
-                const errorMsg = 'Ошибка';
-                [geoCountry, geoCity, geoLat, geoLon].forEach(el => {
-                    el.textContent = errorMsg;
-                    el.className = 'error value';
-                });
-                detectedIpEl.textContent = '(Не удалось загрузить данные геолокации)';
+                const errorMsgDisplay = 'Ошибка';
+                [geoCountry, geoCity, geoLat, geoLon].forEach(el => { el.textContent = errorMsgDisplay; el.className = 'error value'; });
+                detectedIpEl.textContent = `(Ошибка геолокации: ${error.message.substring(0,150)})`;
+                detectedIpEl.className = 'error comment';
             }
         }
 
@@ -214,93 +217,113 @@
             uaElement.className = 'value';
         }
 
-        function displayBrowserAndOSInfo() {
-            const ua = navigator.userAgent;
-            let browserName = "Неизвестный браузер";
-            let browserVersion = "";
-            let osName = "Неизвестная ОС";
-            let osVersion = "";
+        async function displayBrowserAndOSInfo() {
+            const browserEl = document.getElementById('browser');
+            const osEl = document.getElementById('os');
+            const notesEl = document.getElementById('parsingNotes');
 
-            let match;
+            browserEl.className = 'loading value'; osEl.className = 'loading value';
+            browserEl.textContent = 'Анализ...'; osEl.textContent = 'Анализ...';
+            notesEl.innerHTML = ''; // Очищаем примечания
 
-            // OS Detection
-            if (ua.match(/Windows NT 10\.0/i)) { osName = "Windows"; osVersion = "10 / 11"; }
-            else if (ua.match(/Windows NT 6\.3/i)) { osName = "Windows"; osVersion = "8.1"; }
-            else if (ua.match(/Windows NT 6\.2/i)) { osName = "Windows"; osVersion = "8"; }
-            else if (ua.match(/Windows NT 6\.1/i)) { osName = "Windows"; osVersion = "7"; }
-            else if (ua.match(/Windows NT 6\.0/i)) { osName = "Windows"; osVersion = "Vista"; }
-            else if (ua.match(/Windows NT 5\.1/i)) { osName = "Windows"; osVersion = "XP"; }
-            else if ((match = ua.match(/Mac OS X ([0-9_]+)/i))) {
-                osName = "macOS";
-                osVersion = match[1].replace(/_/g, '.');
-            } else if ((match = ua.match(/Android[\s\/]([0-9\.]+)/i))) {
-                osName = "Android";
-                osVersion = match[1];
-            } else if ((match = ua.match(/(iPhone|iPad|iPod).*OS\s([0-9_]+)/i))) {
-                osName = match[1] === "iPad" ? "iPadOS" : "iOS";
-                osVersion = match[2].replace(/_/g, '.');
-            } else if (ua.match(/Linux/i)) {
-                osName = "Linux";
-                if (ua.match(/x86_64/i)) osVersion = "(x86_64)";
-                else if (ua.match(/i686/i)) osVersion = "(i686)";
-                else if ((match = ua.match(/armv[0-9]+l?/i))) osVersion = `(${match[0]})`;
+            let browserName, browserVersion, osName, osVersion;
+            let usedUACH = false;
+
+            try {
+                if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+                    console.log("Попытка использовать User-Agent Client Hints...");
+                    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
+                        "platform", "platformVersion", "architecture", "model", "fullVersionList"
+                    ]);
+
+                    osName = highEntropyValues.platform || null;
+                    osVersion = highEntropyValues.platformVersion || null;
+
+                    if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
+                        let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
+                                           highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
+                                           highEntropyValues.fullVersionList.find(e => e.brand === "Opera") ||
+                                           highEntropyValues.fullVersionList.find(e => !e.brand.includes("Not") && !e.brand.includes("Chromium"));
+                        
+                        if (primaryEntry) {
+                            browserName = primaryEntry.brand;
+                            browserVersion = primaryEntry.version; // Это должна быть полная версия
+                        }
+                    }
+                    if (browserName && osName) {
+                         usedUACH = true;
+                         notesEl.innerHTML = "<em>Информация получена через User-Agent Client Hints (UA-CH). Этот метод обычно более точен.</em>";
+                         console.log("UA-CH Data:", highEntropyValues);
+                    }
+                } else {
+                     console.log("User-Agent Client Hints (getHighEntropyValues) не доступны.");
+                }
+            } catch (uachError) {
+                console.warn("Не удалось получить полные данные из UA-CH:", uachError.message);
+                notesEl.innerHTML = "<em>Не удалось получить полные данные из UA-CH, возможен fallback.</em> ";
             }
 
-            // Browser Detection (order is important)
-            if ((match = ua.match(/EdgA?\/([0-9\.]+)/i)) || (match = ua.match(/Edge\/([0-9\.]+)/i))) {
-                browserName = "Microsoft Edge";
-                browserVersion = match[1];
-            } else if ((match = ua.match(/OPR\/([0-9\.]+)/i)) || (match = ua.match(/Opera(?: Mini)?\/([0-9\.]+)/i))) {
-                browserName = "Opera";
-                browserVersion = match[1];
-                if (ua.match(/Opera Mini/i)) browserName += " Mini";
-            } else if ((match = ua.match(/YaBrowser\/([0-9\.]+)/i))) {
-                browserName = "Yandex Browser";
-                browserVersion = match[1];
-            } else if ((match = ua.match(/SamsungBrowser\/([0-9\.]+)/i))) {
-                browserName = "Samsung Internet";
-                browserVersion = match[1];
-            } else if ((match = ua.match(/CriOS\/([0-9\.]+)/i))) {
-                browserName = "Google Chrome";
-                browserVersion = match[1] + " (iOS)";
-            } else if ((match = ua.match(/FxiOS\/([0-9\.]+)/i))) {
-                browserName = "Mozilla Firefox";
-                browserVersion = match[1] + " (iOS)";
-            } else if ((match = ua.match(/Firefox\/([0-9\.]+)/i))) {
-                browserName = "Mozilla Firefox";
-                browserVersion = match[1];
-            } else if ((match = ua.match(/Chrome\/([0-9\.]+)/i))) { // After Edge, Opera, etc.
-                browserName = "Google Chrome";
-                browserVersion = match[1];
-            } else if (ua.match(/Safari/i) && (match = ua.match(/Version\/([0-9\.]+)/i))) {
-                browserName = "Apple Safari";
-                browserVersion = match[1];
-            } else if ((match = ua.match(/MSIE ([0-9\.]+)/i)) || (match = ua.match(/Trident\/.*?rv:([0-9\.]+)/i))) {
-                browserName = "Internet Explorer";
-                browserVersion = match[1];
-            } else if (ua.match(/AppleWebKit/i) && (match = ua.match(/Safari\/([0-9\.]+)/i))) {
-                 // Generic WebKit/Safari, not a specific product or old version
-                browserName = "WebKit-based Browser";
-                browserVersion = `(WebKit: ${match[1]})`;
+            // Fallback или дополнение с UAParser.js
+            if (!browserName || !osName || !browserVersion || !osVersion) { // Если что-то из UA-CH не получено
+                console.log("Использование UAParser.js как fallback или для дополнения...");
+                if (typeof UAParser === 'undefined') {
+                    const errorText = "Библиотека UAParser не загружена.";
+                    browserEl.textContent = browserName || errorText;
+                    osEl.textContent = osName || errorText;
+                    browserEl.className = 'error value'; osEl.className = 'error value';
+                    notesEl.innerHTML += "<br><em>UAParser не загружен. Проверьте интернет/блокировщики.</em>";
+                    console.error(errorText);
+                    return;
+                }
+                try {
+                    const parser = new UAParser(navigator.userAgent);
+                    const result = parser.getResult();
+
+                    if (!browserName && result.browser && result.browser.name) {
+                        browserName = result.browser.name;
+                        browserVersion = result.browser.version;
+                    }
+                    if (!osName && result.os && result.os.name) {
+                        osName = result.os.name;
+                        osVersion = result.os.version;
+                    }
+                    if (!usedUACH) { // Если UA-CH вообще не использовались
+                         notesEl.innerHTML = "<em>Информация получена через UAParser.js (fallback).</em>";
+                    } else { // Если UA-CH использовались, но UAParser дополнил
+                         notesEl.innerHTML += "<br><em>(Некоторые данные дополнены UAParser.js)</em>";
+                    }
+                } catch (parseError) {
+                    console.error("Ошибка при парсинге с UAParser:", parseError);
+                    if (!browserName) browserEl.textContent = "Ошибка анализа UA";
+                    if (!osName) osEl.textContent = "Ошибка анализа UA";
+                    browserEl.className = 'error value'; osEl.className = 'error value';
+                    notesEl.innerHTML = "<em>Произошла ошибка при анализе информации о системе.</em>";
+                    return;
+                }
             }
             
-            const browserEl = document.getElementById('browser');
-            browserEl.textContent = `${browserName}${browserVersion ? ' ' + browserVersion : ''}`;
+            browserEl.textContent = `${browserName || 'Неизвестно'} ${browserVersion || ''}`.trim();
             browserEl.className = 'value';
-
-            const osEl = document.getElementById('os');
-            osEl.textContent = `${osName}${osVersion ? ' ' + osVersion : ''}`;
+            osEl.textContent = `${osName || 'Неизвестно'} ${osVersion || ''}`.trim();
             osEl.className = 'value';
 
-            document.getElementById('parsingNotes').innerHTML = "<em>Примечание: Точность определения версии браузера/ОС зависит от User-Agent и может быть приблизительной. Некоторые браузеры могут маскироваться под другие.</em>";
+            if (!notesEl.innerHTML) { // Если вдруг никаких примечаний не было установлено
+                 notesEl.innerHTML = "<em>Данные о системе проанализированы.</em>";
+            }
         }
 
-        window.onload = () => {
+        window.onload = async () => { // Делаем onload async для ожидания displayBrowserAndOSInfo
             fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
             fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
             fetchGeoIP();
             displayUserAgent();
-            displayBrowserAndOSInfo();
+            try {
+                await displayBrowserAndOSInfo(); // Ожидаем завершения, так как она стала async
+            } catch(e) {
+                console.error("Ошибка при отображении информации о браузере/ОС:", e);
+                document.getElementById('browser').textContent = "Ошибка";
+                document.getElementById('os').textContent = "Ошибка";
+            }
         };
     </script>
 </body>
