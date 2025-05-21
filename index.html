@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моя детальная информация</title>
+    <title>My Device Information</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -60,70 +60,60 @@
             display: block;
             margin-top: 2px;
         }
-        .error.comment { color: #c00; }
         #userAgent.value {
              font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
              font-size: 0.9em;
-        }
-        #parsingNotes {
-            font-size: 0.85em;
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px dashed #ddd;
-            color: #444;
-            line-height: 1.4;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/src/ua-parser.min.js"></script>
 </head>
 <body>
     <div class="info-container">
-        <h2>🌍 IP адреса</h2>
+        <h2>IP Addresses</h2>
         <div class="info-item">
             <span class="label">IPv4:</span>
-            <span id="ipv4" class="loading value">Загрузка...</span>
+            <span id="ipv4" class="loading value">Loading...</span>
         </div>
         <div class="info-item">
             <span class="label">IPv6:</span>
-            <span id="ipv6" class="loading value">Загрузка...</span>
+            <span id="ipv6" class="loading value">Loading...</span>
         </div>
     </div>
 
     <div class="info-container">
-        <h2>📍 Геолокация <span id="detectedIpForGeo" class="comment"></span></h2>
+        <h2>Geolocation <span id="detectedIpForGeo" class="comment"></span></h2>
         <div class="info-item">
-            <span class="label">Страна:</span>
-            <span id="geoCountry" class="loading value">Загрузка...</span>
+            <span class="label">Country:</span>
+            <span id="geoCountry" class="loading value">Loading...</span>
         </div>
         <div class="info-item">
-            <span class="label">Город:</span>
-            <span id="geoCity" class="loading value">Загрузка...</span>
+            <span class="label">City:</span>
+            <span id="geoCity" class="loading value">Loading...</span>
         </div>
         <div class="info-item">
-            <span class="label">Широта:</span>
-            <span id="geoLat" class="loading value">Загрузка...</span>
+            <span class="label">Latitude:</span>
+            <span id="geoLat" class="loading value">Loading...</span>
         </div>
         <div class="info-item">
-            <span class="label">Долгота:</span>
-            <span id="geoLon" class="loading value">Загрузка...</span>
+            <span class="label">Longitude:</span>
+            <span id="geoLon" class="loading value">Loading...</span>
         </div>
     </div>
 
     <div class="info-container">
-        <h2>🖥️ Информация о системе</h2>
+        <h2>System Information</h2>
         <div class="info-item">
             <span class="label">User Agent:</span>
-            <span id="userAgent" class="loading value">Загрузка...</span>
+            <span id="userAgent" class="loading value">Loading...</span>
         </div>
         <div class="info-item">
-            <span class="label">Браузер:</span>
-            <span id="browser" class="loading value">Загрузка...</span>
+            <span class="label">Browser:</span>
+            <span id="browser" class="loading value">Loading...</span>
         </div>
         <div class="info-item">
-            <span class="label">ОС:</span>
-            <span id="os" class="loading value">Загрузка...</span>
+            <span class="label">OS:</span>
+            <span id="os" class="loading value">Loading...</span>
         </div>
-        <div id="parsingNotes" class="comment"></div>
     </div>
 
     <script>
@@ -144,7 +134,7 @@
         async function fetchIP(url, elementId, ipType) {
             const element = document.getElementById(elementId);
             element.className = 'loading value';
-            element.textContent = 'Загрузка...';
+            element.textContent = 'Loading...';
             try {
                 const response = await fetchWithTimeout(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -154,18 +144,16 @@
                     element.textContent = ip;
                     element.className = 'value';
                 } else {
-                    throw new Error('Неверный формат IP');
+                    throw new Error('Invalid IP format');
                 }
             } catch (error) {
-                console.warn(`Ошибка при получении ${ipType} (${url}):`, error.message);
                 const isDnsFailureForIPv6 = ipType === 'ipv6' && error.message.toLowerCase().includes('err_name_not_resolved');
-                element.textContent = isDnsFailureForIPv6 ? 'Недоступен (DNS)' : 
-                                     (ipType === 'ipv6' ? 'Недоступен' : 'Не удалось определить');
+                element.textContent = isDnsFailureForIPv6 ? 'Unavailable (DNS)' : 
+                                     (ipType === 'ipv6' ? 'Unavailable' : 'Could not determine');
                 element.className = isDnsFailureForIPv6 ? 'value' : 'error value';
             }
         }
         
-        // Используем ipinfo.io для геолокации (поддерживает HTTPS на бесплатном тарифе)
         const GEO_API_URL = 'https://ipinfo.io/json';
 
         async function fetchGeoIP() {
@@ -176,49 +164,52 @@
             const detectedIpEl = document.getElementById('detectedIpForGeo');
 
             [geoCountry, geoCity, geoLat, geoLon].forEach(el => {
-                el.textContent = 'Загрузка...';
+                el.textContent = 'Loading...';
                 el.className = 'loading value';
             });
             detectedIpEl.textContent = '';
             detectedIpEl.className = 'comment';
 
             try {
-                console.log("Запрос геолокации на:", GEO_API_URL);
-                const response = await fetchWithTimeout(GEO_API_URL); // Для ipinfo.io токен не нужен для базовых запросов
+                const response = await fetchWithTimeout(GEO_API_URL);
                 if (!response.ok) {
-                    let errorTextDetail = `HTTP статус: ${response.status}`;
+                    let errorTextDetail = `HTTP status: ${response.status}`;
                     try { const apiError = await response.text(); errorTextDetail += ` - ${apiError.substring(0,100)}`;} catch (e) {}
                     throw new Error(errorTextDetail);
                 }
                 const data = await response.json();
 
-                // Обработка ответа от ipinfo.io
-                // data.country, data.city, data.loc ("широта,долгота"), data.ip (IP, который определил сервис)
-                geoCountry.textContent = data.country || 'N/A';
+                let countryName = data.country || 'N/A';
+                if (data.country && typeof Intl.DisplayNames === 'function') {
+                    try {
+                        const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+                        countryName = regionNames.of(data.country) || data.country;
+                    } catch (e) {
+                        countryName = data.country; // Fallback to code
+                    }
+                }
+                geoCountry.textContent = countryName;
                 geoCity.textContent = data.city || 'N/A';
                 
-                if (data.loc) { // data.loc это строка "latitude,longitude"
+                if (data.loc) {
                     const locParts = data.loc.split(',');
                     if (locParts.length === 2) {
                         geoLat.textContent = parseFloat(locParts[0]).toFixed(4) || 'N/A';
                         geoLon.textContent = parseFloat(locParts[1]).toFixed(4) || 'N/A';
                     } else {
-                        geoLat.textContent = 'N/A';
-                        geoLon.textContent = 'N/A';
+                        geoLat.textContent = 'N/A'; geoLon.textContent = 'N/A';
                     }
                 } else {
-                    geoLat.textContent = 'N/A';
-                    geoLon.textContent = 'N/A';
+                    geoLat.textContent = 'N/A'; geoLon.textContent = 'N/A';
                 }
                 
-                detectedIpEl.textContent = data.ip ? `(Данные для IP: ${data.ip})` : '(IP для геолокации не определен)';
+                detectedIpEl.textContent = data.ip ? `(Data for IP: ${data.ip})` : '';
                 [geoCountry, geoCity, geoLat, geoLon].forEach(el => el.className = 'value');
 
             } catch (error) {
-                console.error('Ошибка при получении GeoIP:', error);
-                const errorMsgDisplay = 'Ошибка';
+                const errorMsgDisplay = 'Error';
                 [geoCountry, geoCity, geoLat, geoLon].forEach(el => { el.textContent = errorMsgDisplay; el.className = 'error value'; });
-                detectedIpEl.textContent = `(Ошибка геолокации: ${error.message.substring(0,150)})`;
+                detectedIpEl.textContent = `(Geolocation error: ${error.message.substring(0,100)})`;
                 detectedIpEl.className = 'error comment';
             }
         }
@@ -232,24 +223,20 @@
         async function displayBrowserAndOSInfo() {
             const browserEl = document.getElementById('browser');
             const osEl = document.getElementById('os');
-            const notesEl = document.getElementById('parsingNotes');
 
             browserEl.className = 'loading value'; osEl.className = 'loading value';
-            browserEl.textContent = 'Анализ...'; osEl.textContent = 'Анализ...';
-            notesEl.innerHTML = '';
+            browserEl.textContent = 'Loading...'; osEl.textContent = 'Loading...';
 
             let browserName, browserVersion, osName, osVersion;
-            let usedUACH = false;
 
             try {
                 if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
-                    console.log("Попытка использовать User-Agent Client Hints...");
                     const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
                         "platform", "platformVersion", "architecture", "model", "fullVersionList"
                     ]);
 
                     osName = highEntropyValues.platform || null;
-                    osVersion = highEntropyValues.platformVersion || null; // e.g., macOS -> "15.5.0"
+                    osVersion = highEntropyValues.platformVersion || null;
 
                     if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
                         let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
@@ -259,51 +246,33 @@
                         
                         if (primaryEntry) {
                             browserName = primaryEntry.brand;
-                            browserVersion = primaryEntry.version; // e.g. Chrome -> "136.0.7103.114"
+                            browserVersion = primaryEntry.version;
                         }
                     }
-                    if (browserName && osName) {
-                         usedUACH = true;
-                         notesEl.innerHTML = "<em>Информация получена через User-Agent Client Hints (UA-CH). Этот метод обычно более точен.</em>";
-                         console.log("UA-CH Data:", highEntropyValues);
-                    } else {
-                        console.log("Не все данные получены из UA-CH:", {osName, browserName, fullVersionList: highEntropyValues.fullVersionList});
-                    }
-                } else {
-                     console.log("User-Agent Client Hints (getHighEntropyValues) не доступны.");
                 }
             } catch (uachError) {
-                console.warn("Не удалось получить полные данные из UA-CH:", uachError.message);
-                notesEl.innerHTML = "<em>Не удалось получить полные данные из UA-CH, возможен fallback.</em> ";
+                // Silently ignore UA-CH errors for now, fallback will be used
             }
 
             if (!browserName || !osName || !browserVersion || !osVersion) {
-                console.log("Использование UAParser.js как fallback или для дополнения...");
                 if (typeof UAParser === 'undefined') {
-                    const errorText = "Библиотека UAParser не загружена.";
-                    browserEl.textContent = browserName || errorText; osEl.textContent = osName || errorText;
+                    browserEl.textContent = browserName || 'Error'; osEl.textContent = osName || 'Error';
                     browserEl.className = 'error value'; osEl.className = 'error value';
-                    notesEl.innerHTML += "<br><em>UAParser не загружен. Проверьте интернет/блокировщики.</em>";
-                    console.error(errorText); return;
+                    return;
                 }
                 try {
                     const parser = new UAParser(navigator.userAgent); const result = parser.getResult();
                     if (!browserName && result.browser && result.browser.name) { browserName = result.browser.name; browserVersion = result.browser.version; }
                     if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
-                    if (!usedUACH) { notesEl.innerHTML = "<em>Информация получена через UAParser.js (fallback).</em>"; } 
-                    else if (notesEl.innerHTML.length > 0) { notesEl.innerHTML += "<br><em>(Некоторые данные могли быть дополнены UAParser.js)</em>"; }
-                    else { notesEl.innerHTML = "<em>Информация дополнена UAParser.js.</em>"; }
                 } catch (parseError) {
-                    console.error("Ошибка при парсинге с UAParser:", parseError);
-                    if (!browserName) browserEl.textContent = "Ошибка анализа UA"; if (!osName) osEl.textContent = "Ошибка анализа UA";
+                    if (!browserName) browserEl.textContent = "Error"; if (!osName) osEl.textContent = "Error";
                     browserEl.className = 'error value'; osEl.className = 'error value';
-                    notesEl.innerHTML = "<em>Произошла ошибка при анализе информации о системе.</em>"; return;
+                    return;
                 }
             }
             
-            browserEl.textContent = `${browserName || 'Неизвестно'} ${browserVersion || ''}`.trim(); browserEl.className = 'value';
-            osEl.textContent = `${osName || 'Неизвестно'} ${osVersion || ''}`.trim(); osEl.className = 'value';
-            if (!notesEl.innerHTML) { notesEl.innerHTML = "<em>Данные о системе проанализированы.</em>"; }
+            browserEl.textContent = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim(); browserEl.className = 'value';
+            osEl.textContent = `${osName || 'Unknown'} ${osVersion || ''}`.trim(); osEl.className = 'value';
         }
 
         window.onload = async () => {
@@ -312,8 +281,8 @@
             fetchGeoIP();
             displayUserAgent();
             try { await displayBrowserAndOSInfo(); } catch(e) {
-                console.error("Ошибка при отображении информации о браузере/ОС:", e);
-                document.getElementById('browser').textContent = "Ошибка"; document.getElementById('os').textContent = "Ошибка";
+                document.getElementById('browser').textContent = "Error"; document.getElementById('os').textContent = "Error";
+                document.getElementById('browser').className = 'error value'; document.getElementById('os').className = 'error value';
             }
         };
     </script>
