@@ -24,7 +24,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 700px; /* Немного шире для детальной информации */
+            max-width: 700px;
             margin-bottom: 20px;
         }
         h2 {
@@ -43,7 +43,7 @@
         .label {
             font-weight: 600;
             color: #555;
-            min-width: 120px; /* Увеличено для лучшего выравнивания */
+            min-width: 120px;
             display: inline-block;
             vertical-align: top;
         }
@@ -149,7 +149,6 @@
                 const response = await fetchWithTimeout(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const ip = (await response.text()).trim();
-                // Проверка IP адреса (можно улучшить регулярными выражениями)
                 let isValid = (ipType === 'ipv4') ? /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) : (ip.includes(':') && ip.length >= 3);
                 if (isValid) {
                     element.textContent = ip;
@@ -158,15 +157,16 @@
                     throw new Error('Неверный формат IP');
                 }
             } catch (error) {
-                console.warn(`Ошибка при получении ${ipType} (${url}):`, error.message); // Используем warn для ожидаемых ошибок
-                element.textContent = (ipType === 'ipv6' && error.message.includes('ERR_NAME_NOT_RESOLVED')) ? 'Недоступен (DNS)' : 
+                console.warn(`Ошибка при получении ${ipType} (${url}):`, error.message);
+                const isDnsFailureForIPv6 = ipType === 'ipv6' && error.message.toLowerCase().includes('err_name_not_resolved');
+                element.textContent = isDnsFailureForIPv6 ? 'Недоступен (DNS)' : 
                                      (ipType === 'ipv6' ? 'Недоступен' : 'Не удалось определить');
-                element.className = (ipType === 'ipv6' && error.message.includes('ERR_NAME_NOT_RESOLVED')) ? 'value' : 'error value'; // Не ошибка, если просто нет IPv6
+                element.className = isDnsFailureForIPv6 ? 'value' : 'error value';
             }
         }
         
-        // КРАЙНЕ ВАЖНО: Убедитесь, что URL ниже ПРЯМОЙ и не обернут в google.com/url/...
-        const GEO_API_URL = 'https://ip-api.com/json/?fields=status,message,country,city,lat,lon,query';
+        // Используем ipinfo.io для геолокации (поддерживает HTTPS на бесплатном тарифе)
+        const GEO_API_URL = 'https://ipinfo.io/json';
 
         async function fetchGeoIP() {
             const geoCountry = document.getElementById('geoCountry');
@@ -183,8 +183,8 @@
             detectedIpEl.className = 'comment';
 
             try {
-                console.log("Запрос геолокации на:", GEO_API_URL); // Логируем URL для проверки
-                const response = await fetchWithTimeout(GEO_API_URL);
+                console.log("Запрос геолокации на:", GEO_API_URL);
+                const response = await fetchWithTimeout(GEO_API_URL); // Для ipinfo.io токен не нужен для базовых запросов
                 if (!response.ok) {
                     let errorTextDetail = `HTTP статус: ${response.status}`;
                     try { const apiError = await response.text(); errorTextDetail += ` - ${apiError.substring(0,100)}`;} catch (e) {}
@@ -192,16 +192,28 @@
                 }
                 const data = await response.json();
 
-                if (data.status === 'success') {
-                    geoCountry.textContent = data.country || 'N/A';
-                    geoCity.textContent = data.city || 'N/A';
-                    geoLat.textContent = data.lat !== undefined ? data.lat.toFixed(4) : 'N/A';
-                    geoLon.textContent = data.lon !== undefined ? data.lon.toFixed(4) : 'N/A';
-                    detectedIpEl.textContent = `(Данные для IP: ${data.query})`;
-                    [geoCountry, geoCity, geoLat, geoLon].forEach(el => el.className = 'value');
+                // Обработка ответа от ipinfo.io
+                // data.country, data.city, data.loc ("широта,долгота"), data.ip (IP, который определил сервис)
+                geoCountry.textContent = data.country || 'N/A';
+                geoCity.textContent = data.city || 'N/A';
+                
+                if (data.loc) { // data.loc это строка "latitude,longitude"
+                    const locParts = data.loc.split(',');
+                    if (locParts.length === 2) {
+                        geoLat.textContent = parseFloat(locParts[0]).toFixed(4) || 'N/A';
+                        geoLon.textContent = parseFloat(locParts[1]).toFixed(4) || 'N/A';
+                    } else {
+                        geoLat.textContent = 'N/A';
+                        geoLon.textContent = 'N/A';
+                    }
                 } else {
-                    throw new Error(data.message || 'API вернул статус: fail');
+                    geoLat.textContent = 'N/A';
+                    geoLon.textContent = 'N/A';
                 }
+                
+                detectedIpEl.textContent = data.ip ? `(Данные для IP: ${data.ip})` : '(IP для геолокации не определен)';
+                [geoCountry, geoCity, geoLat, geoLon].forEach(el => el.className = 'value');
+
             } catch (error) {
                 console.error('Ошибка при получении GeoIP:', error);
                 const errorMsgDisplay = 'Ошибка';
@@ -224,7 +236,7 @@
 
             browserEl.className = 'loading value'; osEl.className = 'loading value';
             browserEl.textContent = 'Анализ...'; osEl.textContent = 'Анализ...';
-            notesEl.innerHTML = ''; // Очищаем примечания
+            notesEl.innerHTML = '';
 
             let browserName, browserVersion, osName, osVersion;
             let usedUACH = false;
@@ -237,23 +249,25 @@
                     ]);
 
                     osName = highEntropyValues.platform || null;
-                    osVersion = highEntropyValues.platformVersion || null;
+                    osVersion = highEntropyValues.platformVersion || null; // e.g., macOS -> "15.5.0"
 
                     if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
                         let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Opera") ||
-                                           highEntropyValues.fullVersionList.find(e => !e.brand.includes("Not") && !e.brand.includes("Chromium"));
+                                           highEntropyValues.fullVersionList.find(e => !e.brand.toLowerCase().includes("not") && !e.brand.toLowerCase().includes("chromium"));
                         
                         if (primaryEntry) {
                             browserName = primaryEntry.brand;
-                            browserVersion = primaryEntry.version; // Это должна быть полная версия
+                            browserVersion = primaryEntry.version; // e.g. Chrome -> "136.0.7103.114"
                         }
                     }
                     if (browserName && osName) {
                          usedUACH = true;
                          notesEl.innerHTML = "<em>Информация получена через User-Agent Client Hints (UA-CH). Этот метод обычно более точен.</em>";
                          console.log("UA-CH Data:", highEntropyValues);
+                    } else {
+                        console.log("Не все данные получены из UA-CH:", {osName, browserName, fullVersionList: highEntropyValues.fullVersionList});
                     }
                 } else {
                      console.log("User-Agent Client Hints (getHighEntropyValues) не доступны.");
@@ -263,66 +277,43 @@
                 notesEl.innerHTML = "<em>Не удалось получить полные данные из UA-CH, возможен fallback.</em> ";
             }
 
-            // Fallback или дополнение с UAParser.js
-            if (!browserName || !osName || !browserVersion || !osVersion) { // Если что-то из UA-CH не получено
+            if (!browserName || !osName || !browserVersion || !osVersion) {
                 console.log("Использование UAParser.js как fallback или для дополнения...");
                 if (typeof UAParser === 'undefined') {
                     const errorText = "Библиотека UAParser не загружена.";
-                    browserEl.textContent = browserName || errorText;
-                    osEl.textContent = osName || errorText;
+                    browserEl.textContent = browserName || errorText; osEl.textContent = osName || errorText;
                     browserEl.className = 'error value'; osEl.className = 'error value';
                     notesEl.innerHTML += "<br><em>UAParser не загружен. Проверьте интернет/блокировщики.</em>";
-                    console.error(errorText);
-                    return;
+                    console.error(errorText); return;
                 }
                 try {
-                    const parser = new UAParser(navigator.userAgent);
-                    const result = parser.getResult();
-
-                    if (!browserName && result.browser && result.browser.name) {
-                        browserName = result.browser.name;
-                        browserVersion = result.browser.version;
-                    }
-                    if (!osName && result.os && result.os.name) {
-                        osName = result.os.name;
-                        osVersion = result.os.version;
-                    }
-                    if (!usedUACH) { // Если UA-CH вообще не использовались
-                         notesEl.innerHTML = "<em>Информация получена через UAParser.js (fallback).</em>";
-                    } else { // Если UA-CH использовались, но UAParser дополнил
-                         notesEl.innerHTML += "<br><em>(Некоторые данные дополнены UAParser.js)</em>";
-                    }
+                    const parser = new UAParser(navigator.userAgent); const result = parser.getResult();
+                    if (!browserName && result.browser && result.browser.name) { browserName = result.browser.name; browserVersion = result.browser.version; }
+                    if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
+                    if (!usedUACH) { notesEl.innerHTML = "<em>Информация получена через UAParser.js (fallback).</em>"; } 
+                    else if (notesEl.innerHTML.length > 0) { notesEl.innerHTML += "<br><em>(Некоторые данные могли быть дополнены UAParser.js)</em>"; }
+                    else { notesEl.innerHTML = "<em>Информация дополнена UAParser.js.</em>"; }
                 } catch (parseError) {
                     console.error("Ошибка при парсинге с UAParser:", parseError);
-                    if (!browserName) browserEl.textContent = "Ошибка анализа UA";
-                    if (!osName) osEl.textContent = "Ошибка анализа UA";
+                    if (!browserName) browserEl.textContent = "Ошибка анализа UA"; if (!osName) osEl.textContent = "Ошибка анализа UA";
                     browserEl.className = 'error value'; osEl.className = 'error value';
-                    notesEl.innerHTML = "<em>Произошла ошибка при анализе информации о системе.</em>";
-                    return;
+                    notesEl.innerHTML = "<em>Произошла ошибка при анализе информации о системе.</em>"; return;
                 }
             }
             
-            browserEl.textContent = `${browserName || 'Неизвестно'} ${browserVersion || ''}`.trim();
-            browserEl.className = 'value';
-            osEl.textContent = `${osName || 'Неизвестно'} ${osVersion || ''}`.trim();
-            osEl.className = 'value';
-
-            if (!notesEl.innerHTML) { // Если вдруг никаких примечаний не было установлено
-                 notesEl.innerHTML = "<em>Данные о системе проанализированы.</em>";
-            }
+            browserEl.textContent = `${browserName || 'Неизвестно'} ${browserVersion || ''}`.trim(); browserEl.className = 'value';
+            osEl.textContent = `${osName || 'Неизвестно'} ${osVersion || ''}`.trim(); osEl.className = 'value';
+            if (!notesEl.innerHTML) { notesEl.innerHTML = "<em>Данные о системе проанализированы.</em>"; }
         }
 
-        window.onload = async () => { // Делаем onload async для ожидания displayBrowserAndOSInfo
+        window.onload = async () => {
             fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
             fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
             fetchGeoIP();
             displayUserAgent();
-            try {
-                await displayBrowserAndOSInfo(); // Ожидаем завершения, так как она стала async
-            } catch(e) {
+            try { await displayBrowserAndOSInfo(); } catch(e) {
                 console.error("Ошибка при отображении информации о браузере/ОС:", e);
-                document.getElementById('browser').textContent = "Ошибка";
-                document.getElementById('os').textContent = "Ошибка";
+                document.getElementById('browser').textContent = "Ошибка"; document.getElementById('os').textContent = "Ошибка";
             }
         };
     </script>
