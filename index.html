@@ -14,7 +14,7 @@
             min-height: 100vh;
             margin: 0;
             background-color: #f0f2f5;
-            color: #1c1e21;
+            color: #000000; /* All text black */
             padding: 20px;
             box-sizing: border-box;
         }
@@ -30,7 +30,6 @@
         h2 {
             margin-top: 0;
             margin-bottom: 15px;
-            color: #333;
             font-size: 1.4em;
             border-bottom: 1px solid #eee;
             padding-bottom: 8px;
@@ -38,85 +37,149 @@
         .info-item {
             margin: 10px 0;
             font-size: 1em;
-            line-height: 1.5;
+            line-height: 1.6; /* Adjusted for icon */
+            display: flex; /* For aligning label, value, and icon */
+            align-items: center;
         }
         .label {
             font-weight: 600;
-            color: #555;
             min-width: 120px;
             display: inline-block;
             vertical-align: top;
+            padding-right: 10px; /* Space between label and value */
+        }
+        .value-container {
+            display: inline-flex; /* Align value and icon */
+            align-items: center;
+            flex-grow: 1;
+            position: relative; /* For icon positioning */
         }
         .value {
-            color: #007bff;
             font-weight: 500;
             word-break: break-all;
+            transition: opacity 0.2s ease-in-out; /* For hover effect */
+            cursor: default; /* Default cursor, will change if copyable */
         }
-        .loading { color: #777; }
-        .error { color: #dc3545; }
-        .comment {
+        .copyable .value:hover {
+            opacity: 0.7;
+        }
+        .copy-icon {
+            font-size: 0.9em;
+            margin-left: 8px;
+            cursor: pointer;
+            display: none; /* Hidden by default */
+            user-select: none; /* Prevent text selection of icon */
+        }
+        .copyable:hover .copy-icon {
+            display: inline-block; /* Show on hover of container */
+        }
+        .loading { color: #000000; opacity: 0.7; } /* Black, slightly transparent */
+        .error { color: #000000; font-style: italic; } /* Black, italic for error */
+        .comment { /* For (Data for IP: ...) */
             font-size: 0.8em;
-            color: #666;
+            opacity: 0.7;
             display: block;
             margin-top: 2px;
-        }
-        #userAgent.value {
-             font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-             font-size: 0.9em;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/src/ua-parser.min.js"></script>
 </head>
 <body>
     <div class="info-container">
-        <h2>IP Addresses</h2>
+        <h2>Network & System Details <span id="detectedIpForGeo" class="comment"></span></h2>
         <div class="info-item">
             <span class="label">IPv4:</span>
-            <span id="ipv4" class="loading value">Loading...</span>
+            <div class="value-container" id="ipv4Container">
+                <span id="ipv4" class="loading value">Loading...</span>
+                <span class="copy-icon" id="ipv4CopyIcon"></span>
+            </div>
         </div>
         <div class="info-item">
             <span class="label">IPv6:</span>
-            <span id="ipv6" class="loading value">Loading...</span>
+            <div class="value-container" id="ipv6Container">
+                <span id="ipv6" class="loading value">Loading...</span>
+                <span class="copy-icon" id="ipv6CopyIcon"></span>
+            </div>
         </div>
-    </div>
-
-    <div class="info-container">
-        <h2>Geolocation <span id="detectedIpForGeo" class="comment"></span></h2>
         <div class="info-item">
             <span class="label">Country:</span>
-            <span id="geoCountry" class="loading value">Loading...</span>
+            <div class="value-container" id="geoCountryContainer">
+                <span id="geoCountry" class="loading value">Loading...</span>
+                <span class="copy-icon" id="geoCountryCopyIcon"></span>
+            </div>
         </div>
         <div class="info-item">
             <span class="label">City:</span>
-            <span id="geoCity" class="loading value">Loading...</span>
+            <div class="value-container" id="geoCityContainer">
+                <span id="geoCity" class="loading value">Loading...</span>
+                <span class="copy-icon" id="geoCityCopyIcon"></span>
+            </div>
         </div>
         <div class="info-item">
-            <span class="label">Latitude:</span>
-            <span id="geoLat" class="loading value">Loading...</span>
+            <span class="label">Provider:</span>
+            <div class="value-container" id="ispContainer">
+                <span id="isp" class="loading value">Loading...</span>
+                <span class="copy-icon" id="ispCopyIcon"></span>
+            </div>
         </div>
-        <div class="info-item">
-            <span class="label">Longitude:</span>
-            <span id="geoLon" class="loading value">Loading...</span>
-        </div>
-    </div>
-
-    <div class="info-container">
-        <h2>System Information</h2>
-        <div class="info-item">
+         <div class="info-item">
             <span class="label">User Agent:</span>
-            <span id="userAgent" class="loading value">Loading...</span>
+            <div class="value-container" id="userAgentContainer">
+                <span id="userAgent" class="loading value">Loading...</span>
+                <span class="copy-icon" id="userAgentCopyIcon"></span>
+            </div>
         </div>
         <div class="info-item">
             <span class="label">Browser:</span>
-            <span id="browser" class="loading value">Loading...</span>
+            <div class="value-container" id="browserContainer">
+                <span id="browser" class="loading value">Loading...</span>
+                <span class="copy-icon" id="browserCopyIcon"></span>
+            </div>
         </div>
         <div class="info-item">
             <span class="label">OS:</span>
-            <span id="os" class="loading value">Loading...</span>
+            <div class="value-container" id="osContainer">
+                <span id="os" class="loading value">Loading...</span>
+                <span class="copy-icon" id="osCopyIcon"></span>
+            </div>
         </div>
     </div>
 
     <script>
+        const COPY_ICON = '📋';
+        const COPIED_ICON = '✅';
+
+        function makeCopyable(valueElementId, iconElementId) {
+            const valueElement = document.getElementById(valueElementId);
+            const iconElement = document.getElementById(iconElementId);
+            const container = valueElement.parentElement;
+
+            if (valueElement && iconElement && container) {
+                container.classList.add('copyable');
+                iconElement.textContent = COPY_ICON;
+                valueElement.style.cursor = 'pointer'; 
+                iconElement.style.cursor = 'pointer';
+
+                const copyAction = async () => {
+                    if (valueElement.classList.contains('loading') || valueElement.classList.contains('error') || !valueElement.textContent || valueElement.textContent === 'N/A' || valueElement.textContent === 'Loading...' || valueElement.textContent === 'Error' || valueElement.textContent === 'Unavailable' || valueElement.textContent === 'Unavailable (DNS)' || valueElement.textContent === 'Could not determine') {
+                        return; 
+                    }
+                    try {
+                        await navigator.clipboard.writeText(valueElement.textContent);
+                        iconElement.textContent = COPIED_ICON;
+                        setTimeout(() => {
+                            iconElement.textContent = COPY_ICON;
+                        }, 1500);
+                    } catch (err) {
+                        // Error copying
+                    }
+                };
+                
+                valueElement.addEventListener('click', copyAction);
+                iconElement.addEventListener('click', copyAction);
+            }
+        }
+
         async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
@@ -154,63 +217,44 @@
             }
         }
         
-        const GEO_API_URL = 'https://ipinfo.io/json';
+        const GEO_API_URL = 'https://ipwho.is/';
 
         async function fetchGeoIP() {
-            const geoCountry = document.getElementById('geoCountry');
-            const geoCity = document.getElementById('geoCity');
-            const geoLat = document.getElementById('geoLat');
-            const geoLon = document.getElementById('geoLon');
+            const geoCountryEl = document.getElementById('geoCountry');
+            const geoCityEl = document.getElementById('geoCity');
+            const ispEl = document.getElementById('isp');
             const detectedIpEl = document.getElementById('detectedIpForGeo');
 
-            [geoCountry, geoCity, geoLat, geoLon].forEach(el => {
+            [geoCountryEl, geoCityEl, ispEl].forEach(el => {
                 el.textContent = 'Loading...';
                 el.className = 'loading value';
             });
             detectedIpEl.textContent = '';
-            detectedIpEl.className = 'comment';
 
             try {
                 const response = await fetchWithTimeout(GEO_API_URL);
                 if (!response.ok) {
-                    let errorTextDetail = `HTTP status: ${response.status}`;
-                    try { const apiError = await response.text(); errorTextDetail += ` - ${apiError.substring(0,100)}`;} catch (e) {}
+                    let errorTextDetail = `HTTP ${response.status}`;
+                    try { const apiErrorText = await response.text(); errorTextDetail += ` - ${apiErrorText.substring(0,100)}`; } catch (e) {}
                     throw new Error(errorTextDetail);
                 }
                 const data = await response.json();
 
-                let countryName = data.country || 'N/A';
-                if (data.country && typeof Intl.DisplayNames === 'function') {
-                    try {
-                        const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
-                        countryName = regionNames.of(data.country) || data.country;
-                    } catch (e) {
-                        countryName = data.country; // Fallback to code
-                    }
+                if (data.success === false) { // ipwho.is specific error check
+                    throw new Error(data.message || 'API request failed');
                 }
-                geoCountry.textContent = countryName;
-                geoCity.textContent = data.city || 'N/A';
-                
-                if (data.loc) {
-                    const locParts = data.loc.split(',');
-                    if (locParts.length === 2) {
-                        geoLat.textContent = parseFloat(locParts[0]).toFixed(4) || 'N/A';
-                        geoLon.textContent = parseFloat(locParts[1]).toFixed(4) || 'N/A';
-                    } else {
-                        geoLat.textContent = 'N/A'; geoLon.textContent = 'N/A';
-                    }
-                } else {
-                    geoLat.textContent = 'N/A'; geoLon.textContent = 'N/A';
-                }
+
+                geoCountryEl.textContent = data.country || 'N/A';
+                geoCityEl.textContent = data.city || 'N/A';
+                ispEl.textContent = data.isp || (data.organization || 'N/A');
                 
                 detectedIpEl.textContent = data.ip ? `(Data for IP: ${data.ip})` : '';
-                [geoCountry, geoCity, geoLat, geoLon].forEach(el => el.className = 'value');
+                [geoCountryEl, geoCityEl, ispEl].forEach(el => el.className = 'value');
 
             } catch (error) {
                 const errorMsgDisplay = 'Error';
-                [geoCountry, geoCity, geoLat, geoLon].forEach(el => { el.textContent = errorMsgDisplay; el.className = 'error value'; });
-                detectedIpEl.textContent = `(Geolocation error: ${error.message.substring(0,100)})`;
-                detectedIpEl.className = 'error comment';
+                [geoCountryEl, geoCityEl, ispEl].forEach(el => { el.textContent = errorMsgDisplay; el.className = 'error value'; });
+                detectedIpEl.textContent = `(Geolocation Error)`;
             }
         }
 
@@ -234,31 +278,22 @@
                     const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
                         "platform", "platformVersion", "architecture", "model", "fullVersionList"
                     ]);
-
                     osName = highEntropyValues.platform || null;
                     osVersion = highEntropyValues.platformVersion || null;
-
                     if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
                         let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Opera") ||
                                            highEntropyValues.fullVersionList.find(e => !e.brand.toLowerCase().includes("not") && !e.brand.toLowerCase().includes("chromium"));
-                        
-                        if (primaryEntry) {
-                            browserName = primaryEntry.brand;
-                            browserVersion = primaryEntry.version;
-                        }
+                        if (primaryEntry) { browserName = primaryEntry.brand; browserVersion = primaryEntry.version; }
                     }
                 }
-            } catch (uachError) {
-                // Silently ignore UA-CH errors for now, fallback will be used
-            }
+            } catch (uachError) { /* Silently ignore UA-CH errors */ }
 
             if (!browserName || !osName || !browserVersion || !osVersion) {
                 if (typeof UAParser === 'undefined') {
                     browserEl.textContent = browserName || 'Error'; osEl.textContent = osName || 'Error';
-                    browserEl.className = 'error value'; osEl.className = 'error value';
-                    return;
+                    browserEl.className = 'error value'; osEl.className = 'error value'; return;
                 }
                 try {
                     const parser = new UAParser(navigator.userAgent); const result = parser.getResult();
@@ -266,11 +301,9 @@
                     if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
                 } catch (parseError) {
                     if (!browserName) browserEl.textContent = "Error"; if (!osName) osEl.textContent = "Error";
-                    browserEl.className = 'error value'; osEl.className = 'error value';
-                    return;
+                    browserEl.className = 'error value'; osEl.className = 'error value'; return;
                 }
             }
-            
             browserEl.textContent = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim(); browserEl.className = 'value';
             osEl.textContent = `${osName || 'Unknown'} ${osVersion || ''}`.trim(); osEl.className = 'value';
         }
@@ -281,9 +314,23 @@
             fetchGeoIP();
             displayUserAgent();
             try { await displayBrowserAndOSInfo(); } catch(e) {
-                document.getElementById('browser').textContent = "Error"; document.getElementById('os').textContent = "Error";
-                document.getElementById('browser').className = 'error value'; document.getElementById('os').className = 'error value';
+                const browserEl = document.getElementById('browser');
+                const osEl = document.getElementById('os');
+                browserEl.textContent = "Error"; osEl.textContent = "Error";
+                browserEl.className = 'error value'; osEl.className = 'error value';
             }
+
+            const copyableFields = [
+                { value: 'ipv4', icon: 'ipv4CopyIcon' },
+                { value: 'ipv6', icon: 'ipv6CopyIcon' },
+                { value: 'geoCountry', icon: 'geoCountryCopyIcon' },
+                { value: 'geoCity', icon: 'geoCityCopyIcon' },
+                { value: 'isp', icon: 'ispCopyIcon' },
+                { value: 'userAgent', icon: 'userAgentCopyIcon' },
+                { value: 'browser', icon: 'browserCopyIcon' },
+                { value: 'os', icon: 'osCopyIcon' }
+            ];
+            copyableFields.forEach(field => makeCopyable(field.value, field.icon));
         };
     </script>
 </body>
