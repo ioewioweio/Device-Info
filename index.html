@@ -110,31 +110,17 @@
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Option 1 - ipwho ISP):</span>
+            <span class="label">Provider (Option A - ip-api ISP):</span>
             <div class="value-container">
-                <span id="providerOpt1" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt1CopyIcon"></span>
+                <span id="providerOptA" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerOptACopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Option 2 - ipwho Org):</span>
+            <span class="label">Provider (Option B - FreeGeoIP ISP):</span>
             <div class="value-container">
-                <span id="providerOpt2" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt2CopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (Option 3 - ipinfo Org):</span>
-            <div class="value-container">
-                <span id="providerOpt3" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt3CopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (Option 4 - ipinfo Org Parsed):</span>
-            <div class="value-container">
-                <span id="providerOpt4" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt4CopyIcon"></span>
+                <span id="providerOptB" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerOptBCopyIcon"></span>
             </div>
         </div>
     </div>
@@ -158,89 +144,119 @@
     </div>
 
     <script>
+        // SVG icons for copy and copied states
         const SVG_COPY_ICON = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
         const SVG_COPIED_ICON = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
 
+        /**
+         * Makes a given element's text content copyable to the clipboard.
+         * @param {string} valueElementId - The ID of the span element containing the text to copy.
+         * @param {string} iconElementId - The ID of the span element containing the copy icon.
+         */
         function makeCopyable(valueElementId, iconElementId) {
             const valueElement = document.getElementById(valueElementId);
             const iconElement = document.getElementById(iconElementId);
             const container = valueElement.parentElement;
 
             if (valueElement && iconElement && container) {
-                container.classList.add('copyable');
-                iconElement.innerHTML = SVG_COPY_ICON;
-                valueElement.style.cursor = 'pointer'; 
-                iconElement.style.cursor = 'pointer';
+                container.classList.add('copyable'); // Add class for hover effects
+                iconElement.innerHTML = SVG_COPY_ICON; // Set initial copy icon
+                valueElement.style.cursor = 'pointer'; // Indicate interactivity
+                iconElement.style.cursor = 'pointer'; // Indicate interactivity
 
                 const copyAction = async () => {
                     const textToCopy = valueElement.textContent;
+                    // Prevent copying if content is still loading or an error occurred
                     if (valueElement.classList.contains('loading') || valueElement.classList.contains('error') || !textToCopy || textToCopy === 'N/A' || textToCopy === 'Loading...' || textToCopy === 'Error' || textToCopy === 'Unavailable' || textToCopy === 'Unavailable (DNS)' || textToCopy === 'Could not determine' || textToCopy === 'Unknown') {
                         return; 
                     }
                     try {
-                        await navigator.clipboard.writeText(textToCopy);
-                        iconElement.innerHTML = SVG_COPIED_ICON;
+                        await navigator.clipboard.writeText(textToCopy); // Copy text to clipboard
+                        iconElement.innerHTML = SVG_COPIED_ICON; // Change icon to 'copied'
+                        // Revert icon after a short delay
                         setTimeout(() => {
                             iconElement.innerHTML = SVG_COPY_ICON;
                         }, 1500);
                     } catch (err) {
-                        /* Error copying */
+                        // Handle clipboard API errors silently
+                        console.error('Failed to copy:', err);
                     }
                 };
                 
+                // Add event listeners for both value text and icon
                 valueElement.addEventListener('click', copyAction);
                 iconElement.addEventListener('click', copyAction);
             }
         }
 
+        /**
+         * Fetches a resource with a specified timeout.
+         * @param {string} resource - The URL to fetch.
+         * @param {object} options - Fetch options.
+         * @param {number} timeout - Timeout in milliseconds.
+         * @returns {Promise<Response>} - The fetch response.
+         */
         async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            options.signal = controller.signal;
+            const id = setTimeout(() => controller.abort(), timeout); // Set timeout
+            options.signal = controller.signal; // Link signal to controller
             try {
                 const response = await fetch(resource, options);
-                clearTimeout(id);
+                clearTimeout(id); // Clear timeout on successful fetch
                 return response;
             } catch (error) {
-                clearTimeout(id);
+                clearTimeout(id); // Clear timeout on error
                 throw error;
             }
         }
 
+        /**
+         * Fetches and displays IPv4 or IPv6 address.
+         * @param {string} url - The API URL to fetch the IP from.
+         * @param {string} elementId - The ID of the HTML element to display the IP.
+         * @param {string} ipType - 'ipv4' or 'ipv6' for validation.
+         */
         async function fetchIP(url, elementId, ipType) {
             const element = document.getElementById(elementId);
-            element.className = 'loading value';
+            element.className = 'loading value'; // Set loading state
             element.textContent = 'Loading...';
             try {
                 const response = await fetchWithTimeout(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const ip = (await response.text()).trim();
+                // Basic IP validation
                 let isValid = (ipType === 'ipv4') ? /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) : (ip.includes(':') && ip.length >= 3);
                 if (isValid) {
                     element.textContent = ip;
-                    element.className = 'value';
+                    element.className = 'value'; // Set success state
                 } else {
                     throw new Error('Invalid IP format');
                 }
             } catch (error) {
+                // Handle different error types for IPv6 DNS failures
                 const isDnsFailureForIPv6 = ipType === 'ipv6' && error.message.toLowerCase().includes('err_name_not_resolved');
                 element.textContent = isDnsFailureForIPv6 ? 'Unavailable (DNS)' : 
                                      (ipType === 'ipv6' ? 'Unavailable' : 'Could not determine');
-                element.className = isDnsFailureForIPv6 ? 'value' : 'error value';
+                element.className = isDnsFailureForIPv6 ? 'value' : 'error value'; // Set error state
+                // Log the error message and the full error object for better debugging
+                console.error(`Error fetching ${ipType}:`, error.message, error);
             }
         }
         
-        const GEO_API_URL_IPWHO = 'https://ipwho.is/';
-        const GEO_API_URL_IPINFO = 'https://ipinfo.io/json';
+        // API URLs for geo-location and provider information
+        const GEO_API_URL_IPAPI = 'http://ip-api.com/json'; // Option A
+        const GEO_API_URL_FREEGEOIP = 'https://freegeoip.app/json/'; // Option B
 
+        /**
+         * Fetches and displays geographical and provider data from multiple APIs.
+         */
         async function fetchGeoData() {
             const locationEl = document.getElementById('location');
-            const providerOpt1El = document.getElementById('providerOpt1');
-            const providerOpt2El = document.getElementById('providerOpt2');
-            const providerOpt3El = document.getElementById('providerOpt3');
-            const providerOpt4El = document.getElementById('providerOpt4');
+            const providerOptAEl = document.getElementById('providerOptA');
+            const providerOptBEl = document.getElementById('providerOptB');
 
-            const elementsToLoad = [locationEl, providerOpt1El, providerOpt2El, providerOpt3El, providerOpt4El];
+            // Initialize all relevant elements to loading state
+            const elementsToLoad = [locationEl, providerOptAEl, providerOptBEl];
             elementsToLoad.forEach(el => {
                 if (el) {
                     el.textContent = 'Loading...';
@@ -248,56 +264,57 @@
                 }
             });
 
+            // Fetch data from ip-api.com (Option A)
             try {
-                const responseIpwho = await fetchWithTimeout(GEO_API_URL_IPWHO);
-                if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
-                const dataIpwho = await responseIpwho.json();
+                const responseIpapi = await fetchWithTimeout(GEO_API_URL_IPAPI);
+                if (!responseIpapi.ok) throw new Error(`ip-api.com HTTP ${responseIpapi.status}`);
+                const dataIpapi = await responseIpapi.json();
 
-                if (dataIpwho.success === false && dataIpwho.message) throw new Error(`ipwho.is: ${dataIpwho.message}`);
-                if (dataIpwho.success !== undefined && !dataIpwho.success) throw new Error('ipwho.is: API request failed');
+                // Check for API-specific status
+                if (dataIpapi.status === 'fail' && dataIpapi.message) throw new Error(`ip-api.com: ${dataIpapi.message}`);
+                if (dataIpapi.status !== 'success') throw new Error('ip-api.com: API request failed');
 
-                const city = dataIpwho.city || '';
-                const countryFullName = dataIpwho.country || '';
+                // Extract and display ISP from ip-api.com
+                let ispA = dataIpapi.isp || 'N/A';
+                if (providerOptAEl) { providerOptAEl.textContent = ispA; providerOptAEl.className = 'value'; }
+
+                // Also update location from ip-api.com as it's often reliable
+                const city = dataIpapi.city || '';
+                const country = dataIpapi.country || '';
                 let combinedLocation = 'N/A';
-                if (city && countryFullName) combinedLocation = `${city}, ${countryFullName}`;
+                if (city && country) combinedLocation = `${city}, ${country}`;
                 else if (city) combinedLocation = city;
-                else if (countryFullName) combinedLocation = countryFullName;
+                else if (country) combinedLocation = country;
                 
                 if (locationEl) { locationEl.textContent = combinedLocation; locationEl.className = 'value'; }
 
-                let p1 = 'N/A', p2 = 'N/A';
-                if (dataIpwho.connection) {
-                    p1 = dataIpwho.connection.isp || 'N/A';
-                    p2 = dataIpwho.connection.org || 'N/A';
-                }
-                if (providerOpt1El) { providerOpt1El.textContent = p1; providerOpt1El.className = 'value'; }
-                if (providerOpt2El) { providerOpt2El.textContent = p2; providerOpt2El.className = 'value'; }
-
             } catch (error) {
+                // Log the error message and the full error object for better debugging
+                console.error('Error fetching from ip-api.com:', error.message, error);
+                if (providerOptAEl) { providerOptAEl.textContent = 'Error'; providerOptAEl.className = 'error value'; }
                 if (locationEl) { locationEl.textContent = 'Error'; locationEl.className = 'error value'; }
-                if (providerOpt1El) { providerOpt1El.textContent = 'Error'; providerOpt1El.className = 'error value'; }
-                if (providerOpt2El) { providerOpt2El.textContent = 'Error'; providerOpt2El.className = 'error value'; }
             }
 
+            // Fetch data from freegeoip.app (Option B)
             try {
-                const responseIpinfo = await fetchWithTimeout(GEO_API_URL_IPINFO);
-                if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
-                const dataIpinfo = await responseIpinfo.json();
+                const responseFreeGeoIP = await fetchWithTimeout(GEO_API_URL_FREEGEOIP);
+                if (!responseFreeGeoIP.ok) throw new Error(`freegeoip.app HTTP ${responseFreeGeoIP.status}`);
+                const dataFreeGeoIP = await responseFreeGeoIP.json();
 
-                let p3 = dataIpinfo.org || 'N/A';
-                let p4 = 'N/A';
-                if (dataIpinfo.org) {
-                    const orgMatch = dataIpinfo.org.match(/^AS\d+\s+(.*)/);
-                    p4 = (orgMatch && orgMatch[1]) ? orgMatch[1] : dataIpinfo.org;
-                }
-                if (providerOpt3El) { providerOpt3El.textContent = p3; providerOpt3El.className = 'value'; }
-                if (providerOpt4El) { providerOpt4El.textContent = p4; providerOpt4El.className = 'value'; }
+                // Extract and display ISP from freegeoip.app
+                let ispB = dataFreeGeoIP.isp || 'N/A';
+                if (providerOptBEl) { providerOptBEl.textContent = ispB; providerOptBEl.className = 'value'; }
+
             } catch (error) {
-                if (providerOpt3El) { providerOpt3El.textContent = 'Error'; providerOpt3El.className = 'error value'; }
-                if (providerOpt4El) { providerOpt4El.textContent = 'Error'; providerOpt4El.className = 'error value'; }
+                // Log the error message and the full error object for better debugging
+                console.error('Error fetching from freegeoip.app:', error.message, error);
+                if (providerOptBEl) { providerOptBEl.textContent = 'Error'; providerOptBEl.className = 'error value'; }
             }
         }
 
+        /**
+         * Displays browser and OS information using UAParser.js or User-Agent Client Hints.
+         */
         async function displayBrowserAndOSInfo() {
             const browserEl = document.getElementById('browser');
             const osEl = document.getElementById('os');
@@ -305,12 +322,14 @@
             browserEl.textContent = 'Loading...'; osEl.textContent = 'Loading...';
             let browserName, browserVersion, osName, osVersion;
 
+            // Try User-Agent Client Hints first (more modern and accurate)
             try {
                 if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
                     const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "fullVersionList"]);
                     osName = highEntropyValues.platform || null;
                     osVersion = highEntropyValues.platformVersion || null;
                     if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
+                        // Prioritize common browsers, then fall back to others
                         let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Opera") ||
@@ -318,42 +337,64 @@
                         if (primaryEntry) { browserName = primaryEntry.brand; browserVersion = primaryEntry.version; }
                     }
                 }
-            } catch (uachError) { /* Silently ignore */ }
+            } catch (uachError) { /* Silently ignore UACH errors, fall back to UAParser */ }
 
+            // Fallback to UAParser.js if Client Hints failed or didn't provide full info
             if (!browserName || !osName || !browserVersion || !osVersion) {
                 if (typeof UAParser === 'undefined') {
+                    // If UAParser is not loaded, display error
                     browserEl.textContent = browserName || 'Error'; osEl.textContent = osName || 'Error';
                     browserEl.className = 'error value'; osEl.className = 'error value'; return;
                 }
                 try {
-                    const parser = new UAParser(navigator.userAgent); const result = parser.getResult();
+                    const parser = new UAParser(navigator.userAgent);
+                    const result = parser.getResult();
                     if (!browserName && result.browser && result.browser.name) { browserName = result.browser.name; browserVersion = result.browser.version; }
                     if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
                 } catch (parseError) {
-                    if (!browserName) browserEl.textContent = "Error"; if (!osName) osEl.textContent = "Error";
+                    // Handle UAParser errors
+                    console.error('Error parsing user agent:', parseError);
+                    if (!browserName) browserEl.textContent = "Error";
+                    if (!osName) osEl.textContent = "Error";
                     browserEl.className = 'error value'; osEl.className = 'error value'; return;
                 }
             }
-            browserEl.textContent = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim(); browserEl.className = 'value';
-            osEl.textContent = `${osName || 'Unknown'} ${osVersion || ''}`.trim(); osEl.className = 'value';
+            // Display collected browser and OS info
+            browserEl.textContent = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim();
+            browserEl.className = 'value';
+            osEl.textContent = `${osName || 'Unknown'} ${osVersion || ''}`.trim();
+            osEl.className = 'value';
         }
 
+        // Initialize on window load
         window.onload = async () => {
+            // Fetch IP addresses
             fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
             fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
+            
+            // Fetch geo and provider data
             fetchGeoData(); 
-            try { await displayBrowserAndOSInfo(); } catch(e) {
-                const browserEl = document.getElementById('browser'); const osEl = document.getElementById('os');
+            
+            // Display browser and OS info
+            try {
+                await displayBrowserAndOSInfo();
+            } catch(e) {
+                console.error('Error displaying browser/OS info:', e);
+                const browserEl = document.getElementById('browser');
+                const osEl = document.getElementById('os');
                 browserEl.textContent = "Error"; osEl.textContent = "Error";
                 browserEl.className = 'error value'; osEl.className = 'error value';
             }
 
+            // Make all specified fields copyable
             const copyableFields = [
-                { value: 'ipv4', icon: 'ipv4CopyIcon' }, { value: 'ipv6', icon: 'ipv6CopyIcon' },
+                { value: 'ipv4', icon: 'ipv4CopyIcon' },
+                { value: 'ipv6', icon: 'ipv6CopyIcon' },
                 { value: 'location', icon: 'locationCopyIcon' },
-                { value: 'providerOpt1', icon: 'providerOpt1CopyIcon' }, { value: 'providerOpt2', icon: 'providerOpt2CopyIcon' },
-                { value: 'providerOpt3', icon: 'providerOpt3CopyIcon' }, { value: 'providerOpt4', icon: 'providerOpt4CopyIcon' },
-                { value: 'browser', icon: 'browserCopyIcon' }, { value: 'os', icon: 'osCopyIcon' }
+                { value: 'providerOptA', icon: 'providerOptACopyIcon' },
+                { value: 'providerOptB', icon: 'providerOptBCopyIcon' },
+                { value: 'browser', icon: 'browserCopyIcon' },
+                { value: 'os', icon: 'osCopyIcon' }
             ];
             copyableFields.forEach(field => makeCopyable(field.value, field.icon));
         };
