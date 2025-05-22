@@ -14,7 +14,7 @@
             min-height: 100vh;
             margin: 0;
             background-color: #f0f2f5;
-            color: #000000; /* All text black */
+            color: #000000;
             padding: 20px;
             box-sizing: border-box;
         }
@@ -37,56 +37,57 @@
         .info-item {
             margin: 10px 0;
             font-size: 1em;
-            line-height: 1.6; /* Adjusted for icon */
-            display: flex; /* For aligning label, value, and icon */
+            line-height: 1.6;
+            display: flex;
             align-items: center;
         }
         .label {
             font-weight: 600;
             min-width: 120px;
             display: inline-block;
-            vertical-align: top;
-            padding-right: 10px; /* Space between label and value */
+            padding-right: 10px;
         }
         .value-container {
-            display: inline-flex; /* Align value and icon */
+            display: inline-flex;
             align-items: center;
             flex-grow: 1;
-            position: relative; /* For icon positioning */
+            position: relative;
         }
         .value {
             font-weight: 500;
             word-break: break-all;
-            transition: opacity 0.2s ease-in-out; /* For hover effect */
-            cursor: default; /* Default cursor, will change if copyable */
+            transition: opacity 0.2s ease-in-out;
+            cursor: default;
         }
         .copyable .value:hover {
             opacity: 0.7;
         }
         .copy-icon {
-            font-size: 0.9em;
             margin-left: 8px;
             cursor: pointer;
-            display: none; /* Hidden by default */
-            user-select: none; /* Prevent text selection of icon */
+            display: none;
+            user-select: none;
+            width: 16px; /* SVG size */
+            height: 16px; /* SVG size */
+            vertical-align: middle;
+        }
+        .copy-icon svg {
+            display: block; /* Remove extra space below inline SVGs */
+            width: 100%;
+            height: 100%;
+            fill: #000000; /* SVG color */
         }
         .copyable:hover .copy-icon {
-            display: inline-block; /* Show on hover of container */
+            display: inline-block;
         }
-        .loading { color: #000000; opacity: 0.7; } /* Black, slightly transparent */
-        .error { color: #000000; font-style: italic; } /* Black, italic for error */
-        .comment { /* For (Data for IP: ...) */
-            font-size: 0.8em;
-            opacity: 0.7;
-            display: block;
-            margin-top: 2px;
-        }
+        .loading { opacity: 0.7; }
+        .error { font-style: italic; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/src/ua-parser.min.js"></script>
 </head>
 <body>
     <div class="info-container">
-        <h2>Network & System Details <span id="detectedIpForGeo" class="comment"></span></h2>
+        <h2>Network Details</h2>
         <div class="info-item">
             <span class="label">IPv4:</span>
             <div class="value-container" id="ipv4Container">
@@ -122,7 +123,11 @@
                 <span class="copy-icon" id="ispCopyIcon"></span>
             </div>
         </div>
-         <div class="info-item">
+    </div>
+
+    <div class="info-container">
+        <h2>System Information</h2>
+        <div class="info-item">
             <span class="label">User Agent:</span>
             <div class="value-container" id="userAgentContainer">
                 <span id="userAgent" class="loading value">Loading...</span>
@@ -146,8 +151,8 @@
     </div>
 
     <script>
-        const COPY_ICON = '📋';
-        const COPIED_ICON = '✅';
+        const SVG_COPY_ICON = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+        const SVG_COPIED_ICON = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
 
         function makeCopyable(valueElementId, iconElementId) {
             const valueElement = document.getElementById(valueElementId);
@@ -156,19 +161,20 @@
 
             if (valueElement && iconElement && container) {
                 container.classList.add('copyable');
-                iconElement.textContent = COPY_ICON;
+                iconElement.innerHTML = SVG_COPY_ICON;
                 valueElement.style.cursor = 'pointer'; 
                 iconElement.style.cursor = 'pointer';
 
                 const copyAction = async () => {
-                    if (valueElement.classList.contains('loading') || valueElement.classList.contains('error') || !valueElement.textContent || valueElement.textContent === 'N/A' || valueElement.textContent === 'Loading...' || valueElement.textContent === 'Error' || valueElement.textContent === 'Unavailable' || valueElement.textContent === 'Unavailable (DNS)' || valueElement.textContent === 'Could not determine') {
+                    const textToCopy = valueElement.textContent;
+                    if (valueElement.classList.contains('loading') || valueElement.classList.contains('error') || !textToCopy || textToCopy === 'N/A' || textToCopy === 'Loading...' || textToCopy === 'Error' || textToCopy === 'Unavailable' || textToCopy === 'Unavailable (DNS)' || textToCopy === 'Could not determine' || textToCopy === 'Unknown') {
                         return; 
                     }
                     try {
-                        await navigator.clipboard.writeText(valueElement.textContent);
-                        iconElement.textContent = COPIED_ICON;
+                        await navigator.clipboard.writeText(textToCopy);
+                        iconElement.innerHTML = SVG_COPIED_ICON;
                         setTimeout(() => {
-                            iconElement.textContent = COPY_ICON;
+                            iconElement.innerHTML = SVG_COPY_ICON;
                         }, 1500);
                     } catch (err) {
                         // Error copying
@@ -223,13 +229,11 @@
             const geoCountryEl = document.getElementById('geoCountry');
             const geoCityEl = document.getElementById('geoCity');
             const ispEl = document.getElementById('isp');
-            const detectedIpEl = document.getElementById('detectedIpForGeo');
 
             [geoCountryEl, geoCityEl, ispEl].forEach(el => {
                 el.textContent = 'Loading...';
                 el.className = 'loading value';
             });
-            detectedIpEl.textContent = '';
 
             try {
                 const response = await fetchWithTimeout(GEO_API_URL);
@@ -240,21 +244,28 @@
                 }
                 const data = await response.json();
 
-                if (data.success === false) { // ipwho.is specific error check
+                if (data.success === false && data.message) { 
+                    throw new Error(data.message);
+                }
+                 if (data.success !== undefined && !data.success) { // General check for ipwho.is specific errors
                     throw new Error(data.message || 'API request failed');
                 }
 
+
                 geoCountryEl.textContent = data.country || 'N/A';
                 geoCityEl.textContent = data.city || 'N/A';
-                ispEl.textContent = data.isp || (data.organization || 'N/A');
                 
-                detectedIpEl.textContent = data.ip ? `(Data for IP: ${data.ip})` : '';
+                let providerName = 'N/A';
+                if (data.connection) {
+                    providerName = data.connection.isp || data.connection.org || 'N/A';
+                }
+                ispEl.textContent = providerName;
+                
                 [geoCountryEl, geoCityEl, ispEl].forEach(el => el.className = 'value');
 
             } catch (error) {
                 const errorMsgDisplay = 'Error';
                 [geoCountryEl, geoCityEl, ispEl].forEach(el => { el.textContent = errorMsgDisplay; el.className = 'error value'; });
-                detectedIpEl.textContent = `(Geolocation Error)`;
             }
         }
 
@@ -288,7 +299,7 @@
                         if (primaryEntry) { browserName = primaryEntry.brand; browserVersion = primaryEntry.version; }
                     }
                 }
-            } catch (uachError) { /* Silently ignore UA-CH errors */ }
+            } catch (uachError) { /* Silently ignore */ }
 
             if (!browserName || !osName || !browserVersion || !osVersion) {
                 if (typeof UAParser === 'undefined') {
@@ -321,14 +332,10 @@
             }
 
             const copyableFields = [
-                { value: 'ipv4', icon: 'ipv4CopyIcon' },
-                { value: 'ipv6', icon: 'ipv6CopyIcon' },
-                { value: 'geoCountry', icon: 'geoCountryCopyIcon' },
-                { value: 'geoCity', icon: 'geoCityCopyIcon' },
-                { value: 'isp', icon: 'ispCopyIcon' },
-                { value: 'userAgent', icon: 'userAgentCopyIcon' },
-                { value: 'browser', icon: 'browserCopyIcon' },
-                { value: 'os', icon: 'osCopyIcon' }
+                { value: 'ipv4', icon: 'ipv4CopyIcon' }, { value: 'ipv6', icon: 'ipv6CopyIcon' },
+                { value: 'geoCountry', icon: 'geoCountryCopyIcon' }, { value: 'geoCity', icon: 'geoCityCopyIcon' },
+                { value: 'isp', icon: 'ispCopyIcon' }, { value: 'userAgent', icon: 'userAgentCopyIcon' },
+                { value: 'browser', icon: 'browserCopyIcon' }, { value: 'os', icon: 'osCopyIcon' }
             ];
             copyableFields.forEach(field => makeCopyable(field.value, field.icon));
         };
