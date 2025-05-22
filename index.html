@@ -43,7 +43,7 @@
         }
         .label {
             font-weight: 600;
-            min-width: 250px; /* Adjusted for longer provider labels */
+            min-width: 120px;
             display: inline-block;
             padding-right: 10px;
         }
@@ -110,17 +110,10 @@
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Option A - ip-api ISP):</span>
+            <span class="label">Provider:</span>
             <div class="value-container">
-                <span id="providerOptA" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOptACopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (Option B - FreeGeoIP ISP):</span>
-            <div class="value-container">
-                <span id="providerOptB" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOptBCopyIcon"></span>
+                <span id="provider" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerCopyIcon"></span>
             </div>
         </div>
     </div>
@@ -144,192 +137,153 @@
     </div>
 
     <script>
-        // SVG icons for copy and copied states
         const SVG_COPY_ICON = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
         const SVG_COPIED_ICON = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
 
-        /**
-         * Makes a given element's text content copyable to the clipboard.
-         * @param {string} valueElementId - The ID of the span element containing the text to copy.
-         * @param {string} iconElementId - The ID of the span element containing the copy icon.
-         */
         function makeCopyable(valueElementId, iconElementId) {
             const valueElement = document.getElementById(valueElementId);
             const iconElement = document.getElementById(iconElementId);
             const container = valueElement.parentElement;
 
             if (valueElement && iconElement && container) {
-                container.classList.add('copyable'); // Add class for hover effects
-                iconElement.innerHTML = SVG_COPY_ICON; // Set initial copy icon
-                valueElement.style.cursor = 'pointer'; // Indicate interactivity
-                iconElement.style.cursor = 'pointer'; // Indicate interactivity
+                container.classList.add('copyable');
+                iconElement.innerHTML = SVG_COPY_ICON;
+                valueElement.style.cursor = 'pointer'; 
+                iconElement.style.cursor = 'pointer';
 
                 const copyAction = async () => {
                     const textToCopy = valueElement.textContent;
-                    // Prevent copying if content is still loading or an error occurred
                     if (valueElement.classList.contains('loading') || valueElement.classList.contains('error') || !textToCopy || textToCopy === 'N/A' || textToCopy === 'Loading...' || textToCopy === 'Error' || textToCopy === 'Unavailable' || textToCopy === 'Unavailable (DNS)' || textToCopy === 'Could not determine' || textToCopy === 'Unknown') {
                         return; 
                     }
                     try {
-                        await navigator.clipboard.writeText(textToCopy); // Copy text to clipboard
-                        iconElement.innerHTML = SVG_COPIED_ICON; // Change icon to 'copied'
-                        // Revert icon after a short delay
+                        await navigator.clipboard.writeText(textToCopy);
+                        iconElement.innerHTML = SVG_COPIED_ICON;
                         setTimeout(() => {
                             iconElement.innerHTML = SVG_COPY_ICON;
                         }, 1500);
                     } catch (err) {
-                        // Handle clipboard API errors silently
-                        console.error('Failed to copy:', err);
+                        // Error copying
                     }
                 };
                 
-                // Add event listeners for both value text and icon
                 valueElement.addEventListener('click', copyAction);
                 iconElement.addEventListener('click', copyAction);
             }
         }
 
-        /**
-         * Fetches a resource with a specified timeout.
-         * @param {string} resource - The URL to fetch.
-         * @param {object} options - Fetch options.
-         * @param {number} timeout - Timeout in milliseconds.
-         * @returns {Promise<Response>} - The fetch response.
-         */
         async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout); // Set timeout
-            options.signal = controller.signal; // Link signal to controller
+            const id = setTimeout(() => controller.abort(), timeout);
+            options.signal = controller.signal;
             try {
                 const response = await fetch(resource, options);
-                clearTimeout(id); // Clear timeout on successful fetch
+                clearTimeout(id);
                 return response;
             } catch (error) {
-                clearTimeout(id); // Clear timeout on error
+                clearTimeout(id);
                 throw error;
             }
         }
 
-        /**
-         * Fetches and displays IPv4 or IPv6 address.
-         * @param {string} url - The API URL to fetch the IP from.
-         * @param {string} elementId - The ID of the HTML element to display the IP.
-         * @param {string} ipType - 'ipv4' or 'ipv6' for validation.
-         */
         async function fetchIP(url, elementId, ipType) {
             const element = document.getElementById(elementId);
-            element.className = 'loading value'; // Set loading state
+            element.className = 'loading value';
             element.textContent = 'Loading...';
             try {
                 const response = await fetchWithTimeout(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const ip = (await response.text()).trim();
-                // Basic IP validation
                 let isValid = (ipType === 'ipv4') ? /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) : (ip.includes(':') && ip.length >= 3);
                 if (isValid) {
                     element.textContent = ip;
-                    element.className = 'value'; // Set success state
+                    element.className = 'value';
                 } else {
                     throw new Error('Invalid IP format');
                 }
             } catch (error) {
-                // Handle different error types for IPv6 DNS failures
                 const isDnsFailureForIPv6 = ipType === 'ipv6' && error.message.toLowerCase().includes('err_name_not_resolved');
                 element.textContent = isDnsFailureForIPv6 ? 'Unavailable (DNS)' : 
                                      (ipType === 'ipv6' ? 'Unavailable' : 'Could not determine');
-                element.className = isDnsFailureForIPv6 ? 'value' : 'error value'; // Set error state
-                // Log the error message and the full error object for better debugging
-                console.error(`Error fetching ${ipType}:`, error.message, error);
+                element.className = isDnsFailureForIPv6 ? 'value' : 'error value';
             }
         }
         
-        // API URLs for geo-location and provider information
-        const GEO_API_URL_IPAPI = 'http://ip-api.com/json'; // Option A
-        const GEO_API_URL_FREEGEOIP = 'https://freegeoip.app/json/'; // Option B
+        const GEO_API_URL = 'https://ipinfo.io/json';
 
-        /**
-         * Fetches and displays geographical and provider data from multiple APIs.
-         */
-        async function fetchGeoData() {
+        async function fetchGeoIP() {
             const locationEl = document.getElementById('location');
-            const providerOptAEl = document.getElementById('providerOptA');
-            const providerOptBEl = document.getElementById('providerOptB');
+            const providerEl = document.getElementById('provider');
 
-            // Initialize all relevant elements to loading state
-            const elementsToLoad = [locationEl, providerOptAEl, providerOptBEl];
-            elementsToLoad.forEach(el => {
-                if (el) {
+            [locationEl, providerEl].forEach(el => {
+                if(el) {
                     el.textContent = 'Loading...';
                     el.className = 'loading value';
                 }
             });
 
-            // Fetch data from ip-api.com (Option A)
             try {
-                const responseIpapi = await fetchWithTimeout(GEO_API_URL_IPAPI);
-                if (!responseIpapi.ok) throw new Error(`ip-api.com HTTP ${responseIpapi.status}`);
-                const dataIpapi = await responseIpapi.json();
+                const response = await fetchWithTimeout(GEO_API_URL);
+                if (!response.ok) {
+                    let errorTextDetail = `HTTP ${response.status}`;
+                    try { const apiErrorText = await response.text(); errorTextDetail += ` - ${apiErrorText.substring(0,100)}`; } catch (e) {}
+                    throw new Error(errorTextDetail);
+                }
+                const data = await response.json();
 
-                // Check for API-specific status
-                if (dataIpapi.status === 'fail' && dataIpapi.message) throw new Error(`ip-api.com: ${dataIpapi.message}`);
-                if (dataIpapi.status !== 'success') throw new Error('ip-api.com: API request failed');
+                let countryFullName = data.country || ''; // This is country code e.g. "US"
+                if (data.country && typeof Intl.DisplayNames === 'function') {
+                    try {
+                        const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+                        countryFullName = regionNames.of(data.country) || data.country;
+                    } catch (e) { /* countryFullName remains country code */ }
+                }
 
-                // Extract and display ISP from ip-api.com
-                let ispA = dataIpapi.isp || 'N/A';
-                if (providerOptAEl) { providerOptAEl.textContent = ispA; providerOptAEl.className = 'value'; }
-
-                // Also update location from ip-api.com as it's often reliable
-                const city = dataIpapi.city || '';
-                const country = dataIpapi.country || '';
+                const city = data.city || '';
                 let combinedLocation = 'N/A';
-                if (city && country) combinedLocation = `${city}, ${country}`;
-                else if (city) combinedLocation = city;
-                else if (country) combinedLocation = country;
+
+                if (city && countryFullName) {
+                    combinedLocation = `${city}, ${countryFullName}`;
+                } else if (city) {
+                    combinedLocation = city;
+                } else if (countryFullName) {
+                    combinedLocation = countryFullName;
+                }
                 
-                if (locationEl) { locationEl.textContent = combinedLocation; locationEl.className = 'value'; }
+                if (locationEl) {
+                    locationEl.textContent = combinedLocation;
+                    locationEl.className = 'value';
+                }
+                
+                if (providerEl) {
+                    providerEl.textContent = data.org || 'N/A'; // 'org' field from ipinfo.io
+                    providerEl.className = 'value';
+                }
 
             } catch (error) {
-                // Log the error message and the full error object for better debugging
-                console.error('Error fetching from ip-api.com:', error.message, error);
-                if (providerOptAEl) { providerOptAEl.textContent = 'Error'; providerOptAEl.className = 'error value'; }
-                if (locationEl) { locationEl.textContent = 'Error'; locationEl.className = 'error value'; }
-            }
-
-            // Fetch data from freegeoip.app (Option B)
-            try {
-                const responseFreeGeoIP = await fetchWithTimeout(GEO_API_URL_FREEGEOIP);
-                if (!responseFreeGeoIP.ok) throw new Error(`freegeoip.app HTTP ${responseFreeGeoIP.status}`);
-                const dataFreeGeoIP = await responseFreeGeoIP.json();
-
-                // Extract and display ISP from freegeoip.app
-                let ispB = dataFreeGeoIP.isp || 'N/A';
-                if (providerOptBEl) { providerOptBEl.textContent = ispB; providerOptBEl.className = 'value'; }
-
-            } catch (error) {
-                // Log the error message and the full error object for better debugging
-                console.error('Error fetching from freegeoip.app:', error.message, error);
-                if (providerOptBEl) { providerOptBEl.textContent = 'Error'; providerOptBEl.className = 'error value'; }
+                const errorMsgDisplay = 'Error';
+                if (locationEl) { locationEl.textContent = errorMsgDisplay; locationEl.className = 'error value'; }
+                if (providerEl) { providerEl.textContent = errorMsgDisplay; providerEl.className = 'error value'; }
             }
         }
 
-        /**
-         * Displays browser and OS information using UAParser.js or User-Agent Client Hints.
-         */
         async function displayBrowserAndOSInfo() {
             const browserEl = document.getElementById('browser');
             const osEl = document.getElementById('os');
+
             browserEl.className = 'loading value'; osEl.className = 'loading value';
             browserEl.textContent = 'Loading...'; osEl.textContent = 'Loading...';
+
             let browserName, browserVersion, osName, osVersion;
 
-            // Try User-Agent Client Hints first (more modern and accurate)
             try {
                 if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
-                    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "fullVersionList"]);
+                    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
+                        "platform", "platformVersion", "architecture", "model", "fullVersionList"
+                    ]);
                     osName = highEntropyValues.platform || null;
                     osVersion = highEntropyValues.platformVersion || null;
                     if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
-                        // Prioritize common browsers, then fall back to others
                         let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
                                            highEntropyValues.fullVersionList.find(e => e.brand === "Opera") ||
@@ -337,62 +291,42 @@
                         if (primaryEntry) { browserName = primaryEntry.brand; browserVersion = primaryEntry.version; }
                     }
                 }
-            } catch (uachError) { /* Silently ignore UACH errors, fall back to UAParser */ }
+            } catch (uachError) { /* Silently ignore */ }
 
-            // Fallback to UAParser.js if Client Hints failed or didn't provide full info
             if (!browserName || !osName || !browserVersion || !osVersion) {
                 if (typeof UAParser === 'undefined') {
-                    // If UAParser is not loaded, display error
                     browserEl.textContent = browserName || 'Error'; osEl.textContent = osName || 'Error';
                     browserEl.className = 'error value'; osEl.className = 'error value'; return;
                 }
                 try {
-                    const parser = new UAParser(navigator.userAgent);
-                    const result = parser.getResult();
+                    const parser = new UAParser(navigator.userAgent); const result = parser.getResult();
                     if (!browserName && result.browser && result.browser.name) { browserName = result.browser.name; browserVersion = result.browser.version; }
                     if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
                 } catch (parseError) {
-                    // Handle UAParser errors
-                    console.error('Error parsing user agent:', parseError);
-                    if (!browserName) browserEl.textContent = "Error";
-                    if (!osName) osEl.textContent = "Error";
+                    if (!browserName) browserEl.textContent = "Error"; if (!osName) osEl.textContent = "Error";
                     browserEl.className = 'error value'; osEl.className = 'error value'; return;
                 }
             }
-            // Display collected browser and OS info
-            browserEl.textContent = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim();
-            browserEl.className = 'value';
-            osEl.textContent = `${osName || 'Unknown'} ${osVersion || ''}`.trim();
-            osEl.className = 'value';
+            browserEl.textContent = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim(); browserEl.className = 'value';
+            osEl.textContent = `${osName || 'Unknown'} ${osVersion || ''}`.trim(); osEl.className = 'value';
         }
 
-        // Initialize on window load
         window.onload = async () => {
-            // Fetch IP addresses
             fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
             fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
-            
-            // Fetch geo and provider data
-            fetchGeoData(); 
-            
-            // Display browser and OS info
-            try {
-                await displayBrowserAndOSInfo();
-            } catch(e) {
-                console.error('Error displaying browser/OS info:', e);
+            fetchGeoIP();
+            try { await displayBrowserAndOSInfo(); } catch(e) {
                 const browserEl = document.getElementById('browser');
                 const osEl = document.getElementById('os');
                 browserEl.textContent = "Error"; osEl.textContent = "Error";
                 browserEl.className = 'error value'; osEl.className = 'error value';
             }
 
-            // Make all specified fields copyable
             const copyableFields = [
-                { value: 'ipv4', icon: 'ipv4CopyIcon' },
+                { value: 'ipv4', icon: 'ipv4CopyIcon' }, 
                 { value: 'ipv6', icon: 'ipv6CopyIcon' },
                 { value: 'location', icon: 'locationCopyIcon' },
-                { value: 'providerOptA', icon: 'providerOptACopyIcon' },
-                { value: 'providerOptB', icon: 'providerOptBCopyIcon' },
+                { value: 'provider', icon: 'providerCopyIcon' },
                 { value: 'browser', icon: 'browserCopyIcon' },
                 { value: 'os', icon: 'osCopyIcon' }
             ];
