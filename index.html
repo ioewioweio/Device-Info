@@ -67,15 +67,15 @@
             cursor: pointer;
             display: none;
             user-select: none;
-            width: 16px; /* SVG size */
-            height: 16px; /* SVG size */
+            width: 16px;
+            height: 16px;
             vertical-align: middle;
         }
         .copy-icon svg {
-            display: block; /* Remove extra space below inline SVGs */
+            display: block;
             width: 100%;
             height: 100%;
-            fill: #000000; /* SVG color */
+            fill: #000000;
         }
         .copyable:hover .copy-icon {
             display: inline-block;
@@ -90,37 +90,30 @@
         <h2>Network Details</h2>
         <div class="info-item">
             <span class="label">IPv4:</span>
-            <div class="value-container" id="ipv4Container">
+            <div class="value-container">
                 <span id="ipv4" class="loading value">Loading...</span>
                 <span class="copy-icon" id="ipv4CopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
             <span class="label">IPv6:</span>
-            <div class="value-container" id="ipv6Container">
+            <div class="value-container">
                 <span id="ipv6" class="loading value">Loading...</span>
                 <span class="copy-icon" id="ipv6CopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Country:</span>
-            <div class="value-container" id="geoCountryContainer">
-                <span id="geoCountry" class="loading value">Loading...</span>
-                <span class="copy-icon" id="geoCountryCopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">City:</span>
-            <div class="value-container" id="geoCityContainer">
-                <span id="geoCity" class="loading value">Loading...</span>
-                <span class="copy-icon" id="geoCityCopyIcon"></span>
+            <span class="label">Location:</span>
+            <div class="value-container">
+                <span id="location" class="loading value">Loading...</span>
+                <span class="copy-icon" id="locationCopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
             <span class="label">Provider:</span>
-            <div class="value-container" id="ispContainer">
-                <span id="isp" class="loading value">Loading...</span>
-                <span class="copy-icon" id="ispCopyIcon"></span>
+            <div class="value-container">
+                <span id="provider" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerCopyIcon"></span>
             </div>
         </div>
     </div>
@@ -128,22 +121,15 @@
     <div class="info-container">
         <h2>System Information</h2>
         <div class="info-item">
-            <span class="label">User Agent:</span>
-            <div class="value-container" id="userAgentContainer">
-                <span id="userAgent" class="loading value">Loading...</span>
-                <span class="copy-icon" id="userAgentCopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
             <span class="label">Browser:</span>
-            <div class="value-container" id="browserContainer">
+            <div class="value-container">
                 <span id="browser" class="loading value">Loading...</span>
                 <span class="copy-icon" id="browserCopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
             <span class="label">OS:</span>
-            <div class="value-container" id="osContainer">
+            <div class="value-container">
                 <span id="os" class="loading value">Loading...</span>
                 <span class="copy-icon" id="osCopyIcon"></span>
             </div>
@@ -223,16 +209,17 @@
             }
         }
         
-        const GEO_API_URL = 'https://ipwho.is/';
+        const GEO_API_URL = 'https://ipinfo.io/json';
 
         async function fetchGeoIP() {
-            const geoCountryEl = document.getElementById('geoCountry');
-            const geoCityEl = document.getElementById('geoCity');
-            const ispEl = document.getElementById('isp');
+            const locationEl = document.getElementById('location');
+            const providerEl = document.getElementById('provider');
 
-            [geoCountryEl, geoCityEl, ispEl].forEach(el => {
-                el.textContent = 'Loading...';
-                el.className = 'loading value';
+            [locationEl, providerEl].forEach(el => {
+                if(el) {
+                    el.textContent = 'Loading...';
+                    el.className = 'loading value';
+                }
             });
 
             try {
@@ -244,35 +231,40 @@
                 }
                 const data = await response.json();
 
-                if (data.success === false && data.message) { 
-                    throw new Error(data.message);
-                }
-                 if (data.success !== undefined && !data.success) { // General check for ipwho.is specific errors
-                    throw new Error(data.message || 'API request failed');
+                let countryFullName = data.country || ''; // This is country code e.g. "US"
+                if (data.country && typeof Intl.DisplayNames === 'function') {
+                    try {
+                        const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+                        countryFullName = regionNames.of(data.country) || data.country;
+                    } catch (e) { /* countryFullName remains country code */ }
                 }
 
+                const city = data.city || '';
+                let combinedLocation = 'N/A';
 
-                geoCountryEl.textContent = data.country || 'N/A';
-                geoCityEl.textContent = data.city || 'N/A';
-                
-                let providerName = 'N/A';
-                if (data.connection) {
-                    providerName = data.connection.isp || data.connection.org || 'N/A';
+                if (city && countryFullName) {
+                    combinedLocation = `${city}, ${countryFullName}`;
+                } else if (city) {
+                    combinedLocation = city;
+                } else if (countryFullName) {
+                    combinedLocation = countryFullName;
                 }
-                ispEl.textContent = providerName;
                 
-                [geoCountryEl, geoCityEl, ispEl].forEach(el => el.className = 'value');
+                if (locationEl) {
+                    locationEl.textContent = combinedLocation;
+                    locationEl.className = 'value';
+                }
+                
+                if (providerEl) {
+                    providerEl.textContent = data.org || 'N/A'; // 'org' field from ipinfo.io
+                    providerEl.className = 'value';
+                }
 
             } catch (error) {
                 const errorMsgDisplay = 'Error';
-                [geoCountryEl, geoCityEl, ispEl].forEach(el => { el.textContent = errorMsgDisplay; el.className = 'error value'; });
+                if (locationEl) { locationEl.textContent = errorMsgDisplay; locationEl.className = 'error value'; }
+                if (providerEl) { providerEl.textContent = errorMsgDisplay; providerEl.className = 'error value'; }
             }
-        }
-
-        function displayUserAgent() {
-            const uaElement = document.getElementById('userAgent');
-            uaElement.textContent = navigator.userAgent || 'N/A';
-            uaElement.className = 'value';
         }
 
         async function displayBrowserAndOSInfo() {
@@ -323,7 +315,6 @@
             fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
             fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
             fetchGeoIP();
-            displayUserAgent();
             try { await displayBrowserAndOSInfo(); } catch(e) {
                 const browserEl = document.getElementById('browser');
                 const osEl = document.getElementById('os');
@@ -332,10 +323,12 @@
             }
 
             const copyableFields = [
-                { value: 'ipv4', icon: 'ipv4CopyIcon' }, { value: 'ipv6', icon: 'ipv6CopyIcon' },
-                { value: 'geoCountry', icon: 'geoCountryCopyIcon' }, { value: 'geoCity', icon: 'geoCityCopyIcon' },
-                { value: 'isp', icon: 'ispCopyIcon' }, { value: 'userAgent', icon: 'userAgentCopyIcon' },
-                { value: 'browser', icon: 'browserCopyIcon' }, { value: 'os', icon: 'osCopyIcon' }
+                { value: 'ipv4', icon: 'ipv4CopyIcon' }, 
+                { value: 'ipv6', icon: 'ipv6CopyIcon' },
+                { value: 'location', icon: 'locationCopyIcon' },
+                { value: 'provider', icon: 'providerCopyIcon' },
+                { value: 'browser', icon: 'browserCopyIcon' },
+                { value: 'os', icon: 'osCopyIcon' }
             ];
             copyableFields.forEach(field => makeCopyable(field.value, field.icon));
         };
