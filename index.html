@@ -43,7 +43,7 @@
         }
         .label {
             font-weight: 600;
-            min-width: 120px;
+            min-width: 250px; /* Adjusted for longer provider labels */
             display: inline-block;
             padding-right: 10px;
         }
@@ -110,10 +110,31 @@
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider:</span>
+            <span class="label">Provider (Option 1 - ipwho ISP):</span>
             <div class="value-container">
-                <span id="provider" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerCopyIcon"></span>
+                <span id="providerOpt1" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerOpt1CopyIcon"></span>
+            </div>
+        </div>
+        <div class="info-item">
+            <span class="label">Provider (Option 2 - ipwho Org):</span>
+            <div class="value-container">
+                <span id="providerOpt2" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerOpt2CopyIcon"></span>
+            </div>
+        </div>
+        <div class="info-item">
+            <span class="label">Provider (Option 3 - ipinfo Org):</span>
+            <div class="value-container">
+                <span id="providerOpt3" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerOpt3CopyIcon"></span>
+            </div>
+        </div>
+        <div class="info-item">
+            <span class="label">Provider (Option 4 - ipinfo Org Parsed):</span>
+            <div class="value-container">
+                <span id="providerOpt4" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerOpt4CopyIcon"></span>
             </div>
         </div>
     </div>
@@ -163,7 +184,7 @@
                             iconElement.innerHTML = SVG_COPY_ICON;
                         }, 1500);
                     } catch (err) {
-                        // Error copying
+                        /* Error copying */
                     }
                 };
                 
@@ -209,78 +230,84 @@
             }
         }
         
-        const GEO_API_URL = 'https://ipinfo.io/json';
+        const GEO_API_URL_IPWHO = 'https://ipwho.is/';
+        const GEO_API_URL_IPINFO = 'https://ipinfo.io/json';
 
-        async function fetchGeoIP() {
+        async function fetchGeoData() {
             const locationEl = document.getElementById('location');
-            const providerEl = document.getElementById('provider');
+            const providerOpt1El = document.getElementById('providerOpt1');
+            const providerOpt2El = document.getElementById('providerOpt2');
+            const providerOpt3El = document.getElementById('providerOpt3');
+            const providerOpt4El = document.getElementById('providerOpt4');
 
-            [locationEl, providerEl].forEach(el => {
-                if(el) {
+            const elementsToLoad = [locationEl, providerOpt1El, providerOpt2El, providerOpt3El, providerOpt4El];
+            elementsToLoad.forEach(el => {
+                if (el) {
                     el.textContent = 'Loading...';
                     el.className = 'loading value';
                 }
             });
 
             try {
-                const response = await fetchWithTimeout(GEO_API_URL);
-                if (!response.ok) {
-                    let errorTextDetail = `HTTP ${response.status}`;
-                    try { const apiErrorText = await response.text(); errorTextDetail += ` - ${apiErrorText.substring(0,100)}`; } catch (e) {}
-                    throw new Error(errorTextDetail);
-                }
-                const data = await response.json();
+                const responseIpwho = await fetchWithTimeout(GEO_API_URL_IPWHO);
+                if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
+                const dataIpwho = await responseIpwho.json();
 
-                let countryFullName = data.country || ''; // This is country code e.g. "US"
-                if (data.country && typeof Intl.DisplayNames === 'function') {
-                    try {
-                        const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
-                        countryFullName = regionNames.of(data.country) || data.country;
-                    } catch (e) { /* countryFullName remains country code */ }
-                }
+                if (dataIpwho.success === false && dataIpwho.message) throw new Error(`ipwho.is: ${dataIpwho.message}`);
+                if (dataIpwho.success !== undefined && !dataIpwho.success) throw new Error('ipwho.is: API request failed');
 
-                const city = data.city || '';
+                const city = dataIpwho.city || '';
+                const countryFullName = dataIpwho.country || '';
                 let combinedLocation = 'N/A';
+                if (city && countryFullName) combinedLocation = `${city}, ${countryFullName}`;
+                else if (city) combinedLocation = city;
+                else if (countryFullName) combinedLocation = countryFullName;
+                
+                if (locationEl) { locationEl.textContent = combinedLocation; locationEl.className = 'value'; }
 
-                if (city && countryFullName) {
-                    combinedLocation = `${city}, ${countryFullName}`;
-                } else if (city) {
-                    combinedLocation = city;
-                } else if (countryFullName) {
-                    combinedLocation = countryFullName;
+                let p1 = 'N/A', p2 = 'N/A';
+                if (dataIpwho.connection) {
+                    p1 = dataIpwho.connection.isp || 'N/A';
+                    p2 = dataIpwho.connection.org || 'N/A';
                 }
-                
-                if (locationEl) {
-                    locationEl.textContent = combinedLocation;
-                    locationEl.className = 'value';
-                }
-                
-                if (providerEl) {
-                    providerEl.textContent = data.org || 'N/A'; // 'org' field from ipinfo.io
-                    providerEl.className = 'value';
-                }
+                if (providerOpt1El) { providerOpt1El.textContent = p1; providerOpt1El.className = 'value'; }
+                if (providerOpt2El) { providerOpt2El.textContent = p2; providerOpt2El.className = 'value'; }
 
             } catch (error) {
-                const errorMsgDisplay = 'Error';
-                if (locationEl) { locationEl.textContent = errorMsgDisplay; locationEl.className = 'error value'; }
-                if (providerEl) { providerEl.textContent = errorMsgDisplay; providerEl.className = 'error value'; }
+                if (locationEl) { locationEl.textContent = 'Error'; locationEl.className = 'error value'; }
+                if (providerOpt1El) { providerOpt1El.textContent = 'Error'; providerOpt1El.className = 'error value'; }
+                if (providerOpt2El) { providerOpt2El.textContent = 'Error'; providerOpt2El.className = 'error value'; }
+            }
+
+            try {
+                const responseIpinfo = await fetchWithTimeout(GEO_API_URL_IPINFO);
+                if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
+                const dataIpinfo = await responseIpinfo.json();
+
+                let p3 = dataIpinfo.org || 'N/A';
+                let p4 = 'N/A';
+                if (dataIpinfo.org) {
+                    const orgMatch = dataIpinfo.org.match(/^AS\d+\s+(.*)/);
+                    p4 = (orgMatch && orgMatch[1]) ? orgMatch[1] : dataIpinfo.org;
+                }
+                if (providerOpt3El) { providerOpt3El.textContent = p3; providerOpt3El.className = 'value'; }
+                if (providerOpt4El) { providerOpt4El.textContent = p4; providerOpt4El.className = 'value'; }
+            } catch (error) {
+                if (providerOpt3El) { providerOpt3El.textContent = 'Error'; providerOpt3El.className = 'error value'; }
+                if (providerOpt4El) { providerOpt4El.textContent = 'Error'; providerOpt4El.className = 'error value'; }
             }
         }
 
         async function displayBrowserAndOSInfo() {
             const browserEl = document.getElementById('browser');
             const osEl = document.getElementById('os');
-
             browserEl.className = 'loading value'; osEl.className = 'loading value';
             browserEl.textContent = 'Loading...'; osEl.textContent = 'Loading...';
-
             let browserName, browserVersion, osName, osVersion;
 
             try {
                 if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
-                    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
-                        "platform", "platformVersion", "architecture", "model", "fullVersionList"
-                    ]);
+                    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "fullVersionList"]);
                     osName = highEntropyValues.platform || null;
                     osVersion = highEntropyValues.platformVersion || null;
                     if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
@@ -314,21 +341,19 @@
         window.onload = async () => {
             fetchIP('https://ipv4.icanhazip.com', 'ipv4', 'ipv4');
             fetchIP('https://ipv6.icanhazip.com', 'ipv6', 'ipv6');
-            fetchGeoIP();
+            fetchGeoData(); 
             try { await displayBrowserAndOSInfo(); } catch(e) {
-                const browserEl = document.getElementById('browser');
-                const osEl = document.getElementById('os');
+                const browserEl = document.getElementById('browser'); const osEl = document.getElementById('os');
                 browserEl.textContent = "Error"; osEl.textContent = "Error";
                 browserEl.className = 'error value'; osEl.className = 'error value';
             }
 
             const copyableFields = [
-                { value: 'ipv4', icon: 'ipv4CopyIcon' }, 
-                { value: 'ipv6', icon: 'ipv6CopyIcon' },
+                { value: 'ipv4', icon: 'ipv4CopyIcon' }, { value: 'ipv6', icon: 'ipv6CopyIcon' },
                 { value: 'location', icon: 'locationCopyIcon' },
-                { value: 'provider', icon: 'providerCopyIcon' },
-                { value: 'browser', icon: 'browserCopyIcon' },
-                { value: 'os', icon: 'osCopyIcon' }
+                { value: 'providerOpt1', icon: 'providerOpt1CopyIcon' }, { value: 'providerOpt2', icon: 'providerOpt2CopyIcon' },
+                { value: 'providerOpt3', icon: 'providerOpt3CopyIcon' }, { value: 'providerOpt4', icon: 'providerOpt4CopyIcon' },
+                { value: 'browser', icon: 'browserCopyIcon' }, { value: 'os', icon: 'osCopyIcon' }
             ];
             copyableFields.forEach(field => makeCopyable(field.value, field.icon));
         };
