@@ -24,7 +24,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 750px; /* Adjusted for more provider options */
+            max-width: 750px; 
             margin-bottom: 20px;
         }
         h2 {
@@ -43,17 +43,17 @@
         }
         .label {
             font-weight: 600;
-            min-width: 280px; /* Adjusted for longer provider labels */
+            min-width: 230px; /* Adjusted for new labels */
             display: inline-block;
             padding-right: 10px;
-            flex-shrink: 0; /* Prevent label from shrinking */
+            flex-shrink: 0;
         }
         .value-container {
             display: inline-flex;
             align-items: center;
             flex-grow: 1;
             position: relative;
-            min-width: 150px; /* Ensure space for value and icon */
+            min-width: 150px; 
         }
         .value {
             font-weight: 500;
@@ -72,7 +72,7 @@
             width: 16px;
             height: 16px;
             vertical-align: middle;
-            flex-shrink: 0; /* Prevent icon from being pushed out */
+            flex-shrink: 0;
         }
         .copy-icon svg {
             display: block;
@@ -106,52 +106,38 @@
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Location (City, Country):</span>
+            <span class="label">Location:</span>
             <div class="value-container">
                 <span id="location" class="loading value">Loading...</span>
                 <span class="copy-icon" id="locationCopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Opt 1 - ipwho.is ISP):</span>
+            <span class="label">Provider (BDC Carrier):</span>
             <div class="value-container">
                 <span id="providerOpt1" class="loading value">Loading...</span>
                 <span class="copy-icon" id="providerOpt1CopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Opt 2 - ipwho.is Org):</span>
+            <span class="label">Provider (BDC Network Org):</span>
             <div class="value-container">
                 <span id="providerOpt2" class="loading value">Loading...</span>
                 <span class="copy-icon" id="providerOpt2CopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Opt 3 - ipinfo.io Org Raw):</span>
+            <span class="label">Provider (BDC rDNS):</span>
             <div class="value-container">
                 <span id="providerOpt3" class="loading value">Loading...</span>
                 <span class="copy-icon" id="providerOpt3CopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (Opt 4 - ipinfo.io Org Parsed):</span>
+            <span class="label">Provider (ipinfo.io rDNS):</span>
             <div class="value-container">
                 <span id="providerOpt4" class="loading value">Loading...</span>
                 <span class="copy-icon" id="providerOpt4CopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (Opt 5 - db-ip.com ISP):</span>
-            <div class="value-container">
-                <span id="providerOpt5" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt5CopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (Opt 6 - db-ip.com Org):</span>
-            <div class="value-container">
-                <span id="providerOpt6" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt6CopyIcon"></span>
             </div>
         </div>
     </div>
@@ -230,28 +216,26 @@
             }
         }
         
-        const GEO_API_URL_IPWHO = 'https://ipwho.is/';
-        const GEO_API_URL_IPINFO = 'https://ipinfo.io/json';
-        const GEO_API_URL_DBIP = 'https://api.db-ip.com/v2/free/self';
+        const API_IPWHO_IS = 'https://ipwho.is/';
+        const API_BIGDATACLOUD = 'https://api.bigdatacloud.net/data/client-info';
+        const API_IPINFO_IO = 'https://ipinfo.io/json';
 
         async function fetchGeoData() {
             const locationEl = document.getElementById('location');
-            const providerOpt1El = document.getElementById('providerOpt1');
-            const providerOpt2El = document.getElementById('providerOpt2');
-            const providerOpt3El = document.getElementById('providerOpt3');
-            const providerOpt4El = document.getElementById('providerOpt4');
-            const providerOpt5El = document.getElementById('providerOpt5');
-            const providerOpt6El = document.getElementById('providerOpt6');
+            const providerOpt1El = document.getElementById('providerOpt1'); // BDC Carrier
+            const providerOpt2El = document.getElementById('providerOpt2'); // BDC Network Org
+            const providerOpt3El = document.getElementById('providerOpt3'); // BDC rDNS
+            const providerOpt4El = document.getElementById('providerOpt4'); // ipinfo.io rDNS
 
-            const geoElements = [locationEl, providerOpt1El, providerOpt2El, providerOpt3El, providerOpt4El, providerOpt5El, providerOpt6El];
-            geoElements.forEach(el => { if (el) { el.textContent = 'Loading...'; el.className = 'loading value'; }});
+            const elementsToLoad = [locationEl, providerOpt1El, providerOpt2El, providerOpt3El, providerOpt4El];
+            elementsToLoad.forEach(el => { if (el) { el.textContent = 'Loading...'; el.className = 'loading value'; }});
 
             const setElementValue = (el, value, isError = false) => {
-                if (el) { el.textContent = value; el.className = isError ? 'error value' : 'value'; }
+                if (el) { el.textContent = value || 'N/A'; el.className = isError ? 'error value' : 'value'; }
             };
 
-            try { /* Fetch from ipwho.is */
-                const responseIpwho = await fetchWithTimeout(GEO_API_URL_IPWHO);
+            try { /* Fetch from ipwho.is for Location */
+                const responseIpwho = await fetchWithTimeout(API_IPWHO_IS);
                 if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
                 const dataIpwho = await responseIpwho.json();
                 if (dataIpwho.success === false && dataIpwho.message) throw new Error(`ipwho.is: ${dataIpwho.message}`);
@@ -262,37 +246,35 @@
                 if (city && countryFullName) combinedLocation = `${city}, ${countryFullName}`;
                 else if (city) combinedLocation = city; else if (countryFullName) combinedLocation = countryFullName;
                 setElementValue(locationEl, combinedLocation);
-
-                let p1 = 'N/A', p2 = 'N/A';
-                if (dataIpwho.connection) { p1 = dataIpwho.connection.isp || 'N/A'; p2 = dataIpwho.connection.org || 'N/A'; }
-                setElementValue(providerOpt1El, p1); setElementValue(providerOpt2El, p2);
             } catch (error) {
-                setElementValue(locationEl, 'Error', true); setElementValue(providerOpt1El, 'Error', true); setElementValue(providerOpt2El, 'Error', true);
+                setElementValue(locationEl, 'Error', true);
             }
 
-            try { /* Fetch from ipinfo.io */
-                const responseIpinfo = await fetchWithTimeout(GEO_API_URL_IPINFO);
+            try { /* Fetch from BigDataCloud for Provider Opt 1, 2, 3 */
+                const responseBDC = await fetchWithTimeout(API_BIGDATACLOUD);
+                if (!responseBDC.ok) throw new Error(`BigDataCloud HTTP ${responseBDC.status}`);
+                const dataBDC = await responseBDC.json();
+                
+                setElementValue(providerOpt1El, dataBDC.carrier?.name);
+                setElementValue(providerOpt2El, dataBDC.network?.organisation);
+                setElementValue(providerOpt3El, dataBDC.ipPrincipal?.name); // This is their rDNS field
+            } catch (error) {
+                setElementValue(providerOpt1El, 'Error', true);
+                setElementValue(providerOpt2El, 'Error', true);
+                setElementValue(providerOpt3El, 'Error', true);
+            }
+            
+            try { /* Fetch from ipinfo.io for Provider Opt 4 (rDNS) */
+                const responseIpinfo = await fetchWithTimeout(API_IPINFO_IO);
                 if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
                 const dataIpinfo = await responseIpinfo.json();
-                let p3 = dataIpinfo.org || 'N/A'; let p4 = 'N/A';
-                if (dataIpinfo.org) { const orgMatch = dataIpinfo.org.match(/^AS\d+\s+(.*)/); p4 = (orgMatch && orgMatch[1]) ? orgMatch[1] : dataIpinfo.org; }
-                setElementValue(providerOpt3El, p3); setElementValue(providerOpt4El, p4);
+                setElementValue(providerOpt4El, dataIpinfo.hostname);
             } catch (error) {
-                setElementValue(providerOpt3El, 'Error', true); setElementValue(providerOpt4El, 'Error', true);
-            }
-
-            try { /* Fetch from db-ip.com */
-                const responseDbip = await fetchWithTimeout(GEO_API_URL_DBIP);
-                if (!responseDbip.ok) throw new Error(`db-ip.com HTTP ${responseDbip.status}`);
-                const dataDbip = await responseDbip.json();
-                let p5 = dataDbip.isp || 'N/A'; let p6 = dataDbip.organization || 'N/A';
-                setElementValue(providerOpt5El, p5); setElementValue(providerOpt6El, p6);
-            } catch (error) {
-                setElementValue(providerOpt5El, 'Error', true); setElementValue(providerOpt6El, 'Error', true);
+                setElementValue(providerOpt4El, 'Error', true);
             }
         }
 
-        async function displayBrowserAndOSInfo() { /* ... unchanged from previous version ... */
+        async function displayBrowserAndOSInfo() { /* ... unchanged ... */
             const browserEl = document.getElementById('browser');
             const osEl = document.getElementById('os');
             browserEl.className = 'loading value'; osEl.className = 'loading value';
@@ -347,7 +329,6 @@
                 { value: 'location', icon: 'locationCopyIcon' },
                 { value: 'providerOpt1', icon: 'providerOpt1CopyIcon' }, { value: 'providerOpt2', icon: 'providerOpt2CopyIcon' },
                 { value: 'providerOpt3', icon: 'providerOpt3CopyIcon' }, { value: 'providerOpt4', icon: 'providerOpt4CopyIcon' },
-                { value: 'providerOpt5', icon: 'providerOpt5CopyIcon' }, { value: 'providerOpt6', icon: 'providerOpt6CopyIcon' },
                 { value: 'browser', icon: 'browserCopyIcon' }, { value: 'os', icon: 'osCopyIcon' }
             ];
             copyableFields.forEach(field => makeCopyable(field.value, field.icon));
