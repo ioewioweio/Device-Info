@@ -43,7 +43,7 @@
         }
         .label {
             font-weight: 600;
-            min-width: 230px; /* Adjusted for new labels */
+            min-width: 200px; /* Adjusted for new labels */
             display: inline-block;
             padding-right: 10px;
             flex-shrink: 0;
@@ -113,31 +113,17 @@
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (BDC Carrier):</span>
+            <span class="label">Provider (Deduced Domain):</span>
             <div class="value-container">
-                <span id="providerOpt1" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt1CopyIcon"></span>
+                <span id="providerDeducedDomain" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerDeducedDomainCopyIcon"></span>
             </div>
         </div>
         <div class="info-item">
-            <span class="label">Provider (BDC Network Org):</span>
+            <span class="label">Provider (Full rDNS):</span>
             <div class="value-container">
-                <span id="providerOpt2" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt2CopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (BDC rDNS):</span>
-            <div class="value-container">
-                <span id="providerOpt3" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt3CopyIcon"></span>
-            </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Provider (ipinfo.io rDNS):</span>
-            <div class="value-container">
-                <span id="providerOpt4" class="loading value">Loading...</span>
-                <span class="copy-icon" id="providerOpt4CopyIcon"></span>
+                <span id="providerFullRdna" class="loading value">Loading...</span>
+                <span class="copy-icon" id="providerFullRdnaCopyIcon"></span>
             </div>
         </div>
     </div>
@@ -217,17 +203,36 @@
         }
         
         const API_IPWHO_IS = 'https://ipwho.is/';
-        const API_BIGDATACLOUD = 'https://api.bigdatacloud.net/data/client-info';
         const API_IPINFO_IO = 'https://ipinfo.io/json';
+
+        function extractMainDomain(hostname) {
+            if (!hostname || typeof hostname !== 'string' || !hostname.includes('.')) return hostname || 'N/A';
+            const parts = hostname.toLowerCase().split('.');
+            if (parts.length >= 2) {
+                // Heuristic for common structures like .co.uk, .com.au, etc.
+                if (parts.length > 2 && parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 2) { // e.g. co.uk, com.au
+                    if (parts.length > 3 && parts[parts.length-3] !== "www") return parts.slice(-3).join('.');
+                    return parts.slice(-3).join('.'); // Return x.co.uk
+                }
+                 // For general cases like sub.domain.com or domain.com
+                const primaryDomainCandidate = parts.slice(-2).join('.');
+                // Avoid returning things like "123.234" if hostname was an IP or partial IP
+                if (primaryDomainCandidate.match(/\d{1,3}\.\d{1,3}/)) {
+                    if (parts.length > 2) return parts.slice(-3).join('.'); // Try one more part up
+                }
+                return primaryDomainCandidate;
+
+            }
+            return hostname;
+        }
+
 
         async function fetchGeoData() {
             const locationEl = document.getElementById('location');
-            const providerOpt1El = document.getElementById('providerOpt1'); // BDC Carrier
-            const providerOpt2El = document.getElementById('providerOpt2'); // BDC Network Org
-            const providerOpt3El = document.getElementById('providerOpt3'); // BDC rDNS
-            const providerOpt4El = document.getElementById('providerOpt4'); // ipinfo.io rDNS
-
-            const elementsToLoad = [locationEl, providerOpt1El, providerOpt2El, providerOpt3El, providerOpt4El];
+            const providerDeducedDomainEl = document.getElementById('providerDeducedDomain');
+            const providerFullRdnaEl = document.getElementById('providerFullRdna');
+            
+            const elementsToLoad = [locationEl, providerDeducedDomainEl, providerFullRdnaEl];
             elementsToLoad.forEach(el => { if (el) { el.textContent = 'Loading...'; el.className = 'loading value'; }});
 
             const setElementValue = (el, value, isError = false) => {
@@ -249,28 +254,21 @@
             } catch (error) {
                 setElementValue(locationEl, 'Error', true);
             }
-
-            try { /* Fetch from BigDataCloud for Provider Opt 1, 2, 3 */
-                const responseBDC = await fetchWithTimeout(API_BIGDATACLOUD);
-                if (!responseBDC.ok) throw new Error(`BigDataCloud HTTP ${responseBDC.status}`);
-                const dataBDC = await responseBDC.json();
-                
-                setElementValue(providerOpt1El, dataBDC.carrier?.name);
-                setElementValue(providerOpt2El, dataBDC.network?.organisation);
-                setElementValue(providerOpt3El, dataBDC.ipPrincipal?.name); // This is their rDNS field
-            } catch (error) {
-                setElementValue(providerOpt1El, 'Error', true);
-                setElementValue(providerOpt2El, 'Error', true);
-                setElementValue(providerOpt3El, 'Error', true);
-            }
             
-            try { /* Fetch from ipinfo.io for Provider Opt 4 (rDNS) */
+            try { /* Fetch from ipinfo.io for rDNS based provider info */
                 const responseIpinfo = await fetchWithTimeout(API_IPINFO_IO);
                 if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
                 const dataIpinfo = await responseIpinfo.json();
-                setElementValue(providerOpt4El, dataIpinfo.hostname);
+                
+                const rawHostname = dataIpinfo.hostname || 'N/A';
+                setElementValue(providerFullRdnaEl, rawHostname);
+
+                const deducedDomain = extractMainDomain(dataIpinfo.hostname);
+                setElementValue(providerDeducedDomainEl, deducedDomain);
+
             } catch (error) {
-                setElementValue(providerOpt4El, 'Error', true);
+                setElementValue(providerDeducedDomainEl, 'Error', true);
+                setElementValue(providerFullRdnaEl, 'Error', true);
             }
         }
 
@@ -327,8 +325,8 @@
             const copyableFields = [
                 { value: 'ipv4', icon: 'ipv4CopyIcon' }, { value: 'ipv6', icon: 'ipv6CopyIcon' },
                 { value: 'location', icon: 'locationCopyIcon' },
-                { value: 'providerOpt1', icon: 'providerOpt1CopyIcon' }, { value: 'providerOpt2', icon: 'providerOpt2CopyIcon' },
-                { value: 'providerOpt3', icon: 'providerOpt3CopyIcon' }, { value: 'providerOpt4', icon: 'providerOpt4CopyIcon' },
+                { value: 'providerDeducedDomain', icon: 'providerDeducedDomainCopyIcon' },
+                { value: 'providerFullRdna', icon: 'providerFullRdnaCopyIcon' },
                 { value: 'browser', icon: 'browserCopyIcon' }, { value: 'os', icon: 'osCopyIcon' }
             ];
             copyableFields.forEach(field => makeCopyable(field.value, field.icon));
