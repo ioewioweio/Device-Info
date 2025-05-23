@@ -1,0 +1,149 @@
+:root {
+    --bg-color: #f0f2f5;
+    --text-color: #000000;
+    --container-bg-color: #ffffff;
+    --border-color: #eeeeee;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --loading-opacity: 0.7;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1e1e1e;
+        --text-color: #e0e0e0;
+        --container-bg-color: #2c2c2c;
+        --border-color: #3a3a3a;
+        --shadow-color: rgba(255, 255, 255, 0.05);
+        --loading-opacity: 0.6;
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: 20px;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.info-container {
+    background-color: var(--container-bg-color);
+    padding: 20px 25px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    width: 100%;
+    max-width: 700px; 
+    margin-bottom: 20px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+    transition: border-color 0.3s ease;
+}
+
+.info-item {
+    margin: 10px 0;
+    font-size: 1em;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap; /* Allow wrapping for mobile */
+}
+
+.label {
+    font-weight: 600;
+    min-width: 100px; /* Adjusted for better mobile */
+    flex-basis: 120px; /* Give a base size but allow shrinking/growing */
+    padding-right: 10px;
+    flex-shrink: 0;
+}
+
+.value-container {
+    display: inline-flex;
+    align-items: center;
+    flex-grow: 1;
+    position: relative;
+    min-width: 150px; 
+}
+
+.value {
+    font-weight: 500;
+    word-break: break-all;
+    transition: opacity 0.2s ease-in-out;
+    cursor: default;
+}
+
+.copyable .value:hover {
+    opacity: 0.7;
+}
+
+.copy-icon {
+    margin-left: 8px;
+    cursor: pointer;
+    display: none;
+    user-select: none;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.copy-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: var(--text-color);
+    transition: fill 0.3s ease;
+}
+
+.copyable:hover .copy-icon {
+    display: inline-block;
+}
+
+.loading { 
+    opacity: var(--loading-opacity);
+}
+
+.error { 
+    font-style: italic;
+    opacity: 0.9; /* Slightly less prominent than normal error text */
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+    body {
+        padding: 15px;
+    }
+    .info-container {
+        padding: 15px 20px;
+    }
+    h2 {
+        font-size: 1.3em;
+    }
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .label {
+        min-width: auto;
+        flex-basis: auto;
+        margin-bottom: 5px;
+        padding-right: 0;
+    }
+    .value-container {
+        width: 100%; /* Ensure value container takes full width when stacked */
+    }
+}
