@@ -1,9 +1,9 @@
 :root {
     --bg-color: #f0f2f5;
     --text-color: #000000;
-    --label-text-color: #333333; /* Slightly softer for labels */
+    --label-text-color: #333333; 
     --container-bg-color: #ffffff;
-    --cell-bg-color: #fdfdfd; /* Cell slightly different from container */
+    --cell-bg-color: #fdfdfd; 
     --border-color: #e0e0e0;
     --cell-border-color: #eaeaea;
     --shadow-color-light: rgba(0, 0, 0, 0.08);
@@ -66,7 +66,7 @@ body {
 h2 {
     text-align: center;
     margin-top: 0;
-    margin-bottom: 30px; /* More space below title */
+    margin-bottom: 30px;
     font-size: 1.8em; 
     font-weight: 600;
     padding-bottom: 15px;
@@ -77,26 +77,31 @@ h2 {
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px; /* Increased gap */
+    gap: 25px;
 }
 
 .info-item-wrapper {
-    /* Each wrapper will be a grid item */
+    /* Grid item */
 }
 
 .item-label {
     display: block;
     font-weight: 600;
     font-size: 0.9em;
-    margin-bottom: 8px; /* Space between label and cell */
+    margin-bottom: 8px; 
     color: var(--label-text-color);
     transition: color 0.3s ease;
+}
+.item-label .flag-emoji {
+    margin-left: 0.4em;
+    font-size: 1.15em; /* Make flag slightly more prominent if needed */
+    vertical-align: middle;
 }
 
 .info-cell {
     background-color: var(--cell-bg-color);
     padding: 15px 20px;
-    border-radius: 10px; /* Slightly less radius than container */
+    border-radius: 10px;
     font-size: 1em;
     line-height: 1.6;
     display: flex;
@@ -107,7 +112,7 @@ h2 {
     transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease-out, border-color 0.3s ease;
 }
 
-.info-cell.copyable:hover {
+.info-cell.copyable:hover { /* This hover is for the transform effect */
     transform: translateY(-2px);
     box-shadow: 0 6px 12px var(--shadow-color-light);
 }
@@ -116,14 +121,14 @@ h2 {
     font-weight: 500;
     word-break: break-all;
     flex-grow: 1;
-    /* No opacity change on hover for text */
+    /* Text darkening on hover removed */
 }
 
 .cell-value .error-message {
     font-style: italic;
     opacity: 0.9;
 }
-.cell-value.loading .loading-text {
+.cell-value.loading .loading-text { /* Class applied to cell-value itself now */
      opacity: var(--loading-opacity);
 }
 
@@ -145,7 +150,8 @@ h2 {
     transition: fill 0.3s ease;
 }
 
-.info-cell.copyable:hover .copy-icon {
+/* Icon only appears if cell has 'icon-active' and is hovered */
+.info-cell.icon-active:hover .copy-icon {
     display: inline-block;
 }
 

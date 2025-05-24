@@ -6,10 +6,10 @@
         const browserName = browserInfo.name ? browserInfo.name.toLowerCase() : "";
 
         const isOfficiallySupported = 
-            (browserName.includes('chrome') && !uaString.includes("Edg/") && !uaString.includes("OPR/")) || // Chrome proper
+            (browserName.includes('chrome') && !uaString.includes("Edg/") && !uaString.includes("OPR/")) || 
             browserName.includes('chromium') ||
-            (uaString.includes("Edg/") && uaString.includes("Chrome")) || // Chromium Edge
-            (uaString.includes("OPR/") && uaString.includes("Chrome")) || // Opera (Blink)
+            (uaString.includes("Edg/") && uaString.includes("Chrome")) || 
+            (uaString.includes("OPR/") && uaString.includes("Chrome")) || 
             browserName.includes('brave') ||
             browserName.includes('vivaldi');
 
@@ -42,13 +42,15 @@
         
         if (!cellElement || !valueElement || !iconElement) return;
 
-        cellElement.classList.add('copyable');
+        // The 'copyable' class for general hover effects (like transform) is on the cell in HTML.
+        // The 'icon-active' class (controlled by updateCellValue) will determine if the icon appears.
         iconElement.innerHTML = SVG_COPY_ICON;
         cellElement.style.cursor = 'pointer'; 
 
         const copyAction = async () => {
             const valueToCopy = valueElement.dataset.copyValue;
-            if (valueElement.classList.contains('loading') || valueElement.classList.contains('error-state') || 
+            // Check if the icon should be active (meaning there's something valid to copy)
+            if (!cellElement.classList.contains('icon-active') || 
                 valueToCopy === undefined || valueToCopy === null || valueToCopy === '' || 
                 ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)'].includes(valueToCopy)) {
                 return; 
@@ -76,19 +78,29 @@
     function updateCellValue(valueElementId, valueForDisplay, valueForCopy, isError = false, isLoading = false) {
         const element = document.getElementById(valueElementId);
         if (!element) return;
+        const cellElement = element.closest('.info-cell');
 
         if (isLoading) {
             element.innerHTML = `<span class="loading-text">Loading...</span>`;
-            element.className = 'cell-value loading';
+            element.className = 'cell-value loading'; // Keep .loading for potential specific text styling
             element.dataset.copyValue = ''; 
+            if (cellElement) cellElement.classList.remove('icon-active');
         } else if (isError) {
             element.innerHTML = `<span class="error-message">${valueForDisplay || 'Error'}</span>`;
             element.className = 'cell-value error-state'; 
             element.dataset.copyValue = ''; 
+            if (cellElement) cellElement.classList.remove('icon-active');
         } else {
             element.textContent = valueForDisplay || 'N/A';
             element.dataset.copyValue = valueForCopy || (valueForDisplay === 'N/A' ? 'N/A' : '');
             element.className = 'cell-value';
+            // Check if valueForCopy is actually copyable before enabling icon
+            const uncopyableValues = ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)', ''];
+            if (cellElement && valueForCopy && !uncopyableValues.includes(valueForCopy)) {
+                cellElement.classList.add('icon-active');
+            } else if (cellElement) {
+                cellElement.classList.remove('icon-active');
+            }
         }
     }
 
@@ -124,7 +136,11 @@
 
     async function fetchGeoData() {
         const locationValueElId = 'locationValue';
+        const locationLabelEl = document.getElementById('locationLabel');
+        
         updateCellValue(locationValueElId, null, null, false, true);
+        if (locationLabelEl) locationLabelEl.textContent = 'Location'; // Reset label
+
         try {
             const responseIpwho = await fetchWithTimeout(API_IPWHO_IS);
             if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
@@ -137,29 +153,26 @@
             const countryCode = dataIpwho.country_code || '';
             const flag = getFlagEmoji(countryCode);
 
-            let displayLocation = 'N/A';
-            let copyLocation = 'N/A';
-
-            if (city && countryFullName) {
-                copyLocation = `${city}, ${countryFullName}`;
-                displayLocation = `${flag} ${copyLocation}`.trimStart();
-            } else if (city) {
-                copyLocation = city;
-                displayLocation = `${flag} ${copyLocation}`.trimStart();
-            } else if (countryFullName) {
-                copyLocation = countryFullName;
-                displayLocation = `${flag} ${copyLocation}`.trimStart();
+            if (locationLabelEl && flag) {
+                locationLabelEl.innerHTML = `Location <span class="flag-emoji">${flag}</span>`;
+            } else if (locationLabelEl) {
+                locationLabelEl.textContent = 'Location'; // Fallback if no flag
             }
-            if (flag === '' && displayLocation !== 'N/A') displayLocation = displayLocation.trim();
+
+            let locationString = 'N/A';
+            if (city && countryFullName) locationString = `${city}, ${countryFullName}`;
+            else if (city) locationString = city; 
+            else if (countryFullName) locationString = countryFullName;
             
-            updateCellValue(locationValueElId, displayLocation, copyLocation);
+            updateCellValue(locationValueElId, locationString, locationString);
         } catch (error) {
             updateCellValue(locationValueElId, 'Error fetching location', '', true);
+            if (locationLabelEl) locationLabelEl.textContent = 'Location'; // Reset on error
             console.error('Error fetching geo data:', error);
         }
     }
 
-    async function displayBrowserAndOSInfo() {
+    async function displayBrowserAndOSInfo() { /* ... unchanged from previous response ... */
         const browserValueElId = 'browserValue';
         const osValueElId = 'osValue';
         
@@ -203,6 +216,7 @@
         updateCellValue(browserValueElId, browserFullString, browserFullString);
         updateCellValue(osValueElId, osFullString, osFullString);
     }
+
 
     window.onload = async () => {
         if (document.getElementById('browserCompatibilityMessage').style.display === 'block') {
