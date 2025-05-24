@@ -2,19 +2,23 @@
     --bg-color: #f0f2f5;
     --text-color: #000000;
     --container-bg-color: #ffffff;
-    --border-color: #eeeeee;
-    --shadow-color: rgba(0, 0, 0, 0.1);
+    --cell-bg-color: #f9f9f9;
+    --border-color: #e0e0e0;
+    --shadow-color-light: rgba(0, 0, 0, 0.1);
+    --shadow-color-medium: rgba(0, 0, 0, 0.07);
     --loading-opacity: 0.7;
+    --accent-color: #007bff; /* For icons or highlights if needed, though user wants all black text */
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-color: #1e1e1e;
+        --bg-color: #121212;
         --text-color: #e0e0e0;
-        --container-bg-color: #2c2c2c;
-        --border-color: #3a3a3a;
-        --shadow-color: rgba(255, 255, 255, 0.05);
-        --loading-opacity: 0.6;
+        --container-bg-color: #1e1e1e;
+        --cell-bg-color: #2a2a2a;
+        --border-color: #383838;
+        --shadow-color-light: rgba(0, 0, 0, 0.3); /* Darker shadows for contrast */
+        --shadow-color-medium: rgba(0, 0, 0, 0.2);
     }
 }
 
@@ -23,7 +27,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center; /* Center content vertically */
     min-height: 100vh;
     margin: 0;
     background-color: var(--bg-color);
@@ -33,71 +37,90 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+#browserCompatibilityMessage {
+    background-color: var(--container-bg-color);
+    color: var(--text-color);
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 8px 25px var(--shadow-color-light);
+}
+#browserCompatibilityMessage h1 {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+}
+#browserCompatibilityMessage p {
+    font-size: 1.1em;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+
 .info-container {
     background-color: var(--container-bg-color);
-    padding: 20px 25px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 12px var(--shadow-color);
+    padding: 25px 30px;
+    border-radius: 16px; /* Softer radius */
+    box-shadow: 0 8px 16px -4px var(--shadow-color-light), 0 4px 8px -4px var(--shadow-color-medium);
     width: 100%;
-    max-width: 700px; 
-    margin-bottom: 20px;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    max-width: 800px; /* Max width for the single container */
+    margin: 20px auto; /* Centering for safety, body already centers */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 h2 {
+    text-align: center;
     margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.4em;
+    margin-bottom: 25px;
+    font-size: 1.8em; /* Larger title */
+    font-weight: 600;
+    padding-bottom: 15px;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px;
     transition: border-color 0.3s ease;
 }
 
-.info-item {
-    margin: 10px 0;
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive columns */
+    gap: 20px;
+}
+
+.info-cell {
+    background-color: var(--cell-bg-color);
+    padding: 15px 20px;
+    border-radius: 12px; /* Softer radius for cells */
     font-size: 1em;
     line-height: 1.6;
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping for mobile */
+    justify-content: space-between; /* Pushes icon to the right */
+    box-shadow: 0 2px 4px var(--shadow-color-light);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease-out;
 }
 
-.label {
-    font-weight: 600;
-    min-width: 100px; /* Adjusted for better mobile */
-    flex-basis: 120px; /* Give a base size but allow shrinking/growing */
-    padding-right: 10px;
-    flex-shrink: 0;
+.info-cell.copyable:hover {
+    transform: translateY(-2px); /* Slight lift on hover */
+    box-shadow: 0 5px 10px var(--shadow-color-medium);
 }
 
-.value-container {
-    display: inline-flex;
-    align-items: center;
-    flex-grow: 1;
-    position: relative;
-    min-width: 150px; 
-}
-
-.value {
+.cell-text {
     font-weight: 500;
     word-break: break-all;
+    flex-grow: 1; /* Allow text to take available space */
     transition: opacity 0.2s ease-in-out;
-    cursor: default;
 }
 
-.copyable .value:hover {
+.copyable .cell-text:hover {
     opacity: 0.7;
 }
 
 .copy-icon {
-    margin-left: 8px;
+    margin-left: 12px;
     cursor: pointer;
-    display: none;
+    display: none; /* Hidden by default, shown on cell hover */
     user-select: none;
-    width: 16px;
-    height: 16px;
-    vertical-align: middle;
+    width: 18px;  /* Slightly larger icon */
+    height: 18px;
     flex-shrink: 0;
 }
 
@@ -109,41 +132,32 @@ h2 {
     transition: fill 0.3s ease;
 }
 
-.copyable:hover .copy-icon {
+.info-cell.copyable:hover .copy-icon { /* Show icon on cell hover */
     display: inline-block;
 }
 
-.loading { 
-    opacity: var(--loading-opacity);
-}
+.loading { opacity: var(--loading-opacity); }
+.error { font-style: italic; opacity: 0.9; }
 
-.error { 
-    font-style: italic;
-    opacity: 0.9; /* Slightly less prominent than normal error text */
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 480px) {
+/* Mobile Responsiveness for overall container */
+@media (max-width: 600px) {
     body {
-        padding: 15px;
+        padding: 15px; /* Reduce body padding for smaller screens */
+        justify-content: flex-start; /* Align to top on mobile */
     }
     .info-container {
-        padding: 15px 20px;
+        padding: 20px;
+        margin-top: 15px;
+        margin-bottom: 15px;
     }
     h2 {
-        font-size: 1.3em;
+        font-size: 1.5em;
     }
-    .info-item {
-        flex-direction: column;
-        align-items: flex-start;
+    .info-grid {
+        grid-template-columns: 1fr; /* Single column for cells on small screens */
+        gap: 15px;
     }
-    .label {
-        min-width: auto;
-        flex-basis: auto;
-        margin-bottom: 5px;
-        padding-right: 0;
-    }
-    .value-container {
-        width: 100%; /* Ensure value container takes full width when stacked */
+    .info-cell {
+        padding: 12px 15px;
     }
 }

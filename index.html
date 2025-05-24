@@ -3,49 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Device Information</title>
+    <title>Your Info</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/src/ua-parser.min.js"></script>
 </head>
 <body>
-    <div class="info-container">
-        <h2>Network Details</h2>
-        <div class="info-item">
-            <span class="label">IPv4:</span>
-            <div class="value-container">
-                <span id="ipv4" class="loading value">Loading...</span>
+    <div id="browserCompatibilityMessage" style="display: none;">
+        </div>
+
+    <div class="info-container" id="mainInfoContainer">
+        <h2>Your Info</h2>
+        <div class="info-grid">
+            <div class="info-cell copyable" id="ipv4Cell">
+                <span class="cell-text" id="ipv4Text">IPv4: Loading...</span>
                 <span class="copy-icon" id="ipv4CopyIcon"></span>
             </div>
-        </div>
-        <div class="info-item">
-            <span class="label">IPv6:</span>
-            <div class="value-container">
-                <span id="ipv6" class="loading value">Loading...</span>
+            <div class="info-cell copyable" id="ipv6Cell">
+                <span class="cell-text" id="ipv6Text">IPv6: Loading...</span>
                 <span class="copy-icon" id="ipv6CopyIcon"></span>
             </div>
-        </div>
-        <div class="info-item">
-            <span class="label">Location:</span>
-            <div class="value-container">
-                <span id="location" class="loading value">Loading...</span>
+            <div class="info-cell copyable" id="locationCell">
+                <span class="cell-text" id="locationText">Location: Loading...</span>
                 <span class="copy-icon" id="locationCopyIcon"></span>
             </div>
-        </div>
-    </div>
-
-    <div class="info-container">
-        <h2>System Information</h2>
-        <div class="info-item">
-            <span class="label">Browser:</span>
-            <div class="value-container">
-                <span id="browser" class="loading value">Loading...</span>
+            <div class="info-cell copyable" id="browserCell">
+                <span class="cell-text" id="browserText">Browser: Loading...</span>
                 <span class="copy-icon" id="browserCopyIcon"></span>
             </div>
-        </div>
-        <div class="info-item">
-            <span class="label">OS:</span>
-            <div class="value-container">
-                <span id="os" class="loading value">Loading...</span>
+            <div class="info-cell copyable" id="osCell">
+                <span class="cell-text" id="osText">OS: Loading...</span>
                 <span class="copy-icon" id="osCopyIcon"></span>
             </div>
         </div>
