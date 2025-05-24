@@ -1,11 +1,13 @@
 :root {
     --bg-color: #f0f2f5;
     --text-color: #000000;
+    --label-text-color: #333333; /* Slightly softer for labels */
     --container-bg-color: #ffffff;
-    --cell-bg-color: #f9f9f9;
+    --cell-bg-color: #fdfdfd; /* Cell slightly different from container */
     --border-color: #e0e0e0;
-    --shadow-color-light: rgba(0, 0, 0, 0.1);
-    --shadow-color-medium: rgba(0, 0, 0, 0.07);
+    --cell-border-color: #eaeaea;
+    --shadow-color-light: rgba(0, 0, 0, 0.08);
+    --shadow-color-medium: rgba(0, 0, 0, 0.05);
     --loading-opacity: 0.7;
 }
 
@@ -13,10 +15,12 @@
     :root {
         --bg-color: #121212;
         --text-color: #e0e0e0;
+        --label-text-color: #c0c0c0;
         --container-bg-color: #1e1e1e;
-        --cell-bg-color: #2a2a2a;
+        --cell-bg-color: #2c2c2c;
         --border-color: #383838;
-        --shadow-color-light: rgba(0, 0, 0, 0.4); /* Darker shadows for dark theme */
+        --cell-border-color: #404040;
+        --shadow-color-light: rgba(0, 0, 0, 0.5); 
         --shadow-color-medium: rgba(0, 0, 0, 0.3);
     }
 }
@@ -45,21 +49,14 @@ body {
     max-width: 500px;
     box-shadow: 0 8px 25px var(--shadow-color-light);
 }
-#browserCompatibilityMessage h1 {
-    font-size: 1.8em;
-    margin-bottom: 15px;
-}
-#browserCompatibilityMessage p {
-    font-size: 1.1em;
-    line-height: 1.6;
-    margin-bottom: 10px;
-}
+#browserCompatibilityMessage h1 { font-size: 1.8em; margin-bottom: 15px; }
+#browserCompatibilityMessage p { font-size: 1.1em; line-height: 1.6; margin-bottom: 10px; }
 
 .info-container {
     background-color: var(--container-bg-color);
     padding: 25px 30px;
     border-radius: 16px;
-    box-shadow: 0 8px 16px -4px var(--shadow-color-light), 0 4px 8px -4px var(--shadow-color-medium);
+    box-shadow: 0 10px 20px -5px var(--shadow-color-light), 0 4px 8px -4px var(--shadow-color-medium);
     width: 100%;
     max-width: 800px; 
     margin: 20px auto;
@@ -69,7 +66,7 @@ body {
 h2 {
     text-align: center;
     margin-top: 0;
-    margin-bottom: 25px;
+    margin-bottom: 30px; /* More space below title */
     font-size: 1.8em; 
     font-weight: 600;
     padding-bottom: 15px;
@@ -80,47 +77,54 @@ h2 {
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    gap: 25px; /* Increased gap */
+}
+
+.info-item-wrapper {
+    /* Each wrapper will be a grid item */
+}
+
+.item-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9em;
+    margin-bottom: 8px; /* Space between label and cell */
+    color: var(--label-text-color);
+    transition: color 0.3s ease;
 }
 
 .info-cell {
     background-color: var(--cell-bg-color);
     padding: 15px 20px;
-    border-radius: 12px;
+    border-radius: 10px; /* Slightly less radius than container */
     font-size: 1em;
     line-height: 1.6;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 2px 4px var(--shadow-color-light);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease-out;
+    border: 1px solid var(--cell-border-color);
+    box-shadow: 0 2px 5px var(--shadow-color-medium);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease-out, border-color 0.3s ease;
 }
 
 .info-cell.copyable:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 10px var(--shadow-color-medium);
+    box-shadow: 0 6px 12px var(--shadow-color-light);
 }
 
-.cell-text {
+.cell-value {
     font-weight: 500;
     word-break: break-all;
     flex-grow: 1;
-    transition: opacity 0.2s ease-in-out;
+    /* No opacity change on hover for text */
 }
-.cell-text .cell-label-part {
-    font-weight: 600; /* Make label part bold */
-    margin-right: 0.5em; /* Space between label and value */
-}
-.cell-text .error-message { /* Only for the error message itself */
+
+.cell-value .error-message {
     font-style: italic;
     opacity: 0.9;
 }
-.cell-text.loading .loading-text { /* For the "Loading..." text */
+.cell-value.loading .loading-text {
      opacity: var(--loading-opacity);
-}
-
-.copyable .cell-text:hover {
-    opacity: 0.7;
 }
 
 .copy-icon {
@@ -158,10 +162,15 @@ h2 {
     }
     h2 {
         font-size: 1.5em;
+        margin-bottom: 20px;
     }
     .info-grid {
         grid-template-columns: 1fr; 
-        gap: 15px;
+        gap: 20px;
+    }
+    .item-label {
+        font-size: 0.85em;
+        margin-bottom: 6px;
     }
     .info-cell {
         padding: 12px 15px;
