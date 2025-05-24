@@ -6,38 +6,31 @@
         const browserName = browserInfo.name ? browserInfo.name.toLowerCase() : "";
 
         const isChromiumBased = 
-            browserName.includes('chrome') || 
-            browserName.includes('chromium') ||
-            browserName.includes('edge') ||    // Chromium Edge
-            browserName.includes('opera') ||   // Opera (Blink engine)
-            browserName.includes('brave') ||
-            browserName.includes('vivaldi') ||
-            browserName.includes('crios') ||   // Chrome on iOS (WebKit, but for detection purposes)
-            browserName.includes('edgios');    // Edge on iOS (WebKit)
-            // Note: Safari and Firefox are intentionally excluded.
+            browserName.includes('chrome') || browserName.includes('chromium') ||
+            browserName.includes('edge') || browserName.includes('opera') || 
+            browserName.includes('brave') || browserName.includes('vivaldi') ||
+            (uaString.includes('Chrome') && !uaString.includes('Edg') && !uaString.includes('OPR')); // Broader check for Chromium
 
-        if (isChromiumBased && (browserName.includes('safari') && !isChromiumBased) ) {
-             // Catch cases where UA might include "Safari" but is actually Chromium based.
-             // This check is a bit redundant if the list is good.
-        } else if (browserName.includes('safari') || browserName.includes('firefox') || browserName.includes('fxios')) {
+        const isOfficiallySupported = isChromiumBased && !browserName.includes('crios') && !browserName.includes('edgios');
+
+
+        if (!isOfficiallySupported && (browserName.includes('safari') || browserName.includes('firefox') || browserName.includes('fxios') || browserName.includes('crios') || browserName.includes('edgios'))) {
             const mainContainer = document.getElementById('mainInfoContainer');
-            if (mainContainer) {
-                mainContainer.style.display = 'none';
-            }
+            if (mainContainer) mainContainer.style.display = 'none';
             const messageDiv = document.getElementById('browserCompatibilityMessage');
             if (messageDiv) {
                 messageDiv.style.display = 'block';
                 messageDiv.innerHTML = `
                     <h1>Compatibility Notice</h1>
-                    <p>This page is optimized for modern Chromium-based browsers (such as Google Chrome, Microsoft Edge, Opera, Brave).</p>
-                    <p>For the best experience, please switch to one of these browsers.</p>
-                    <p style="font-size:0.9em; opacity:0.7;">Detected browser: ${browserInfo.name || 'Unknown'} ${browserInfo.version || ''}</p>
+                    <p>This page is optimized for desktop Chromium-based browsers (e.g., Google Chrome, Microsoft Edge, Opera, Brave).</p>
+                    <p>You may experience limited functionality or display issues on other browsers.</p>
+                    <p style="font-size:0.9em; opacity:0.7;">Detected: ${browserInfo.name || 'Unknown'} ${browserInfo.version || ''}</p>
                 `;
             }
-            return; // Stop further script execution for non-Chromium
+            return; 
         }
     } catch (e) {
-        console.warn("Browser detection error:", e); // Continue if UAParser fails for some reason
+        console.warn("Browser detection error:", e);
     }
 
     const SVG_COPY_ICON = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
@@ -55,12 +48,14 @@
         cellElement.style.cursor = 'pointer'; 
 
         const copyAction = async () => {
-            const textToCopy = textElement.textContent;
-            if (textElement.classList.contains('loading') || textElement.classList.contains('error') || !textToCopy || ['Loading...', 'Error', 'Unavailable', 'Unavailable (DNS)', 'Could not determine', 'Unknown', 'N/A'].some(s => textToCopy.includes(s))) {
+            const valueToCopy = textElement.dataset.copyValue;
+            if (textElement.classList.contains('loading') || textElement.classList.contains('error-state') || 
+                valueToCopy === undefined || valueToCopy === null || valueToCopy === '' || 
+                ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)'].includes(valueToCopy)) {
                 return; 
             }
             try {
-                await navigator.clipboard.writeText(textToCopy);
+                await navigator.clipboard.writeText(valueToCopy);
                 iconElement.innerHTML = SVG_COPIED_ICON;
                 setTimeout(() => { iconElement.innerHTML = SVG_COPY_ICON; }, 1500);
             } catch (err) { 
@@ -75,58 +70,67 @@
         const id = setTimeout(() => controller.abort(), timeout);
         options.signal = controller.signal;
         try {
-            const response = await fetch(resource, options); 
-            clearTimeout(id); 
-            return response;
-        } catch (error) { 
-            clearTimeout(id); 
-            throw error; 
-        }
+            const response = await fetch(resource, options); clearTimeout(id); return response;
+        } catch (error) { clearTimeout(id); throw error; }
     }
-
-    function updateText(elementId, label, value, isError = false, isLoading = false) {
+    
+    function updateText(elementId, label, valueForDisplay, valueForCopy, isError = false, isLoading = false) {
         const element = document.getElementById(elementId);
         if (!element) return;
-        
+
+        const labelPart = `<span class="cell-label-part">${label}:</span>`;
+        let valuePart;
+
         if (isLoading) {
-            element.textContent = `${label}: Loading...`;
+            valuePart = `<span class="loading-text">Loading...</span>`;
             element.className = 'cell-text loading';
-            return;
+            element.dataset.copyValue = ''; 
+        } else if (isError) {
+            valuePart = `<span class="error-message">${valueForDisplay || 'Error'}</span>`;
+            element.className = 'cell-text error-state'; 
+            element.dataset.copyValue = ''; 
+        } else {
+            valuePart = valueForDisplay || 'N/A';
+            element.dataset.copyValue = valueForCopy || (valueForDisplay === 'N/A' ? 'N/A' : '');
+            element.className = 'cell-text';
         }
-        if (isError) {
-            element.textContent = `${label}: Error`;
-            element.className = 'cell-text error';
-            return;
-        }
-        element.textContent = `${label}: ${value || 'N/A'}`;
-        element.className = 'cell-text';
+        element.innerHTML = `${labelPart} ${valuePart}`;
     }
 
-
     async function fetchIP(url, textElementId, label, ipType) {
-        updateText(textElementId, label, null, false, true);
+        updateText(textElementId, label, null, null, false, true); // isLoading = true
         try {
             const response = await fetchWithTimeout(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const ip = (await response.text()).trim();
             let isValid = (ipType === 'ipv4') ? /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) : (ip.includes(':') && ip.length >= 3);
             if (isValid) { 
-                updateText(textElementId, label, ip);
+                updateText(textElementId, label, ip, ip);
             } else { 
                 throw new Error('Invalid IP format'); 
             }
         } catch (error) {
             const isDnsFailureForIPv6 = ipType === 'ipv6' && error.message.toLowerCase().includes('err_name_not_resolved');
-            const value = isDnsFailureForIPv6 ? 'Unavailable (DNS)' : (ipType === 'ipv6' ? 'Unavailable' : 'Could not determine');
-            updateText(textElementId, label, value, !isDnsFailureForIPv6); // Only error if not expected DNS failure for IPv6
+            const errorMessage = isDnsFailureForIPv6 ? 'Unavailable (DNS)' : (ipType === 'ipv6' ? 'Unavailable' : 'Could not determine');
+            updateText(textElementId, label, errorMessage, '', true, false); // isError = true
         }
     }
     
     const API_IPWHO_IS = 'https://ipwho.is/';
 
+    function getFlagEmoji(countryCode) {
+        if (!countryCode || countryCode.length !== 2) return '';
+        try {
+            const codePoints = countryCode.toUpperCase().split('').map(char => 0x1F1E6 + (char.charCodeAt(0) - 0x41));
+            return String.fromCodePoint(...codePoints);
+        } catch (e) {
+            return ''; // Fallback if fromCodePoint fails for some reason
+        }
+    }
+
     async function fetchGeoData() {
         const locationTextElId = 'locationText';
-        updateText(locationTextElId, 'Location', null, false, true);
+        updateText(locationTextElId, 'Location', null, null, false, true);
         try {
             const responseIpwho = await fetchWithTimeout(API_IPWHO_IS);
             if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
@@ -136,13 +140,26 @@
 
             const city = dataIpwho.city || ''; 
             const countryFullName = dataIpwho.country || '';
-            let combinedLocation = 'N/A';
-            if (city && countryFullName) combinedLocation = `${city}, ${countryFullName}`;
-            else if (city) combinedLocation = city; 
-            else if (countryFullName) combinedLocation = countryFullName;
-            updateText(locationTextElId, 'Location', combinedLocation);
+            const countryCode = dataIpwho.country_code || '';
+            const flag = getFlagEmoji(countryCode);
+
+            let displayLocation = 'N/A';
+            let copyLocation = 'N/A';
+
+            if (city && countryFullName) {
+                copyLocation = `${city}, ${countryFullName}`;
+                displayLocation = `${flag} ${copyLocation}`.trimStart();
+            } else if (city) {
+                copyLocation = city;
+                displayLocation = `${flag} ${copyLocation}`.trimStart();
+            } else if (countryFullName) {
+                copyLocation = countryFullName;
+                displayLocation = `${flag} ${copyLocation}`.trimStart();
+            }
+            
+            updateText(locationTextElId, 'Location', displayLocation, copyLocation);
         } catch (error) {
-            updateText(locationTextElId, 'Location', null, true);
+            updateText(locationTextElId, 'Location', 'Error fetching location', '', true);
             console.error('Error fetching geo data:', error);
         }
     }
@@ -151,9 +168,8 @@
         const browserTextElId = 'browserText';
         const osTextElId = 'osText';
         
-        updateText(browserTextElId, 'Browser', null, false, true);
-        updateText(osTextElId, 'OS', null, false, true);
-
+        updateText(browserTextElId, 'Browser', null, null, false, true);
+        updateText(osTextElId, 'OS', null, null, false, true);
         let browserName, browserVersion, osName, osVersion;
 
         try {
@@ -172,52 +188,41 @@
                     }
                 }
             }
-        } catch (uachError) { 
-            console.warn('Could not get UA Client Hints:', uachError);
-        }
+        } catch (uachError) { console.warn('Could not get UA Client Hints:', uachError); }
 
         if (!browserName || !osName || !browserVersion || !osVersion) {
             if (typeof UAParser === 'undefined') {
-                updateText(browserTextElId, 'Browser', 'Error (Lib missing)', true);
-                updateText(osTextElId, 'OS', 'Error (Lib missing)', true);
-                console.error('UAParser library not loaded.');
-                return;
+                updateText(browserTextElId, 'Browser', 'Error (Lib missing)', '', true);
+                updateText(osTextElId, 'OS', 'Error (Lib missing)', '', true);
+                console.error('UAParser library not loaded.'); return;
             }
             try {
-                const parser = new UAParser(navigator.userAgent); 
-                const result = parser.getResult();
-                if (!browserName && result.browser && result.browser.name) { 
-                    browserName = result.browser.name; 
-                    browserVersion = result.browser.version; 
-                }
-                if (!osName && result.os && result.os.name) { 
-                    osName = result.os.name; 
-                    osVersion = result.os.version; 
-                }
+                const parser = new UAParser(navigator.userAgent); const result = parser.getResult();
+                if (!browserName && result.browser && result.browser.name) { browserName = result.browser.name; browserVersion = result.browser.version; }
+                if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
             } catch (parseError) {
-                updateText(browserTextElId, 'Browser', null, true);
-                updateText(osTextElId, 'OS', null, true);
-                console.error('Error parsing UA string with UAParser:', parseError);
-                return;
+                updateText(browserTextElId, 'Browser', null, '', true);
+                updateText(osTextElId, 'OS', null, '', true);
+                console.error('Error parsing UA string with UAParser:', parseError); return;
             }
         }
-        updateText(browserTextElId, 'Browser', `${browserName || 'Unknown'} ${browserVersion || ''}`.trim());
-        updateText(osTextElId, 'OS', `${osName || 'Unknown'} ${osVersion || ''}`.trim());
+        const browserFullString = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim();
+        const osFullString = `${osName || 'Unknown'} ${osVersion || ''}`.trim();
+        updateText(browserTextElId, 'Browser', browserFullString, browserFullString);
+        updateText(osTextElId, 'OS', osFullString, osFullString);
     }
 
     window.onload = async () => {
         if (document.getElementById('browserCompatibilityMessage').style.display === 'block') {
-            return; // Don't run main script if compatibility message is shown
+            return; 
         }
 
         fetchIP('https://ipv4.icanhazip.com', 'ipv4Text', 'IPv4', 'ipv4');
         fetchIP('https://ipv6.icanhazip.com', 'ipv6Text', 'IPv6', 'ipv6');
         fetchGeoData(); 
-        try { 
-            await displayBrowserAndOSInfo(); 
-        } catch(e) {
-            updateText('browserText', 'Browser', null, true);
-            updateText('osText', 'OS', null, true);
+        try { await displayBrowserAndOSInfo(); } catch(e) {
+            updateText('browserText', 'Browser', null, '', true);
+            updateText('osText', 'OS', null, '', true);
             console.error('Error displaying browser/OS info:', e);
         }
 
@@ -230,4 +235,4 @@
         ];
         copyableCells.forEach(field => makeCopyable(field.cell, field.text, field.icon));
     };
-})(); // IIFE to encapsulate browser check and main logic
+})();
