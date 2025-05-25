@@ -43,7 +43,6 @@
         if (!cellElement || !valueElement || !iconElement) return;
 
         iconElement.innerHTML = SVG_COPY_ICON;
-        // iconElement.style.cursor = 'pointer'; // Handled by CSS
 
         const copyAction = async () => {
             const valueToCopy = valueElement.dataset.copyValue;
@@ -60,7 +59,7 @@
                 console.error('Failed to copy text: ', err);
             }
         };
-        iconElement.addEventListener('click', copyAction); // Copy only on icon click
+        iconElement.addEventListener('click', copyAction);
     }
 
     async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
@@ -132,62 +131,63 @@
         } catch (e) { return ''; }
     }
     
-    function getOsEmoji(osNameStr) {
-        if (!osNameStr) return '⚙️';
-        const os = osNameStr.toLowerCase();
-        if (os.includes('windows')) return '💻';
-        if (os.includes('mac')) return '💻'; 
-        if (os.includes('ios')) return '📱';
-        if (os.includes('linux')) return '🐧';
-        if (os.includes('android')) return '🤖';
-        return '💻';
-    }
-
-    function getBrowserEmoji(browserNameStr) {
-        // For now, a generic web emoji. Could be expanded.
-        return '🌐';
-    }
-
     function parseProviderFromHostname(hostname) {
         if (!hostname || typeof hostname !== 'string' || hostname === 'N/A' || !hostname.includes('.')) {
             return 'N/A';
         }
         const lowerHostname = hostname.toLowerCase();
-        
-        // Specific check for known patterns like "soyuz.in.ua"
+
+        // Specific check for "soyuz" based on your rDNS example
         if (lowerHostname.includes('soyuz.in.ua')) {
-            return 'Soyuz Telecom (deduced)'; // Example
+            const parts = lowerHostname.split('.');
+            for (const part of parts) {
+                if (part.includes('soyuz')) {
+                    let name = part.replace(/^(nat-pool-|dyn-pool-|static-|client-)/, '');
+                    name = name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    return name === "Soyuz" ? "Soyuz Telecom" : name; // Be more specific if it's just "Soyuz"
+                }
+            }
+            return "Soyuz Network"; // Fallback for soyuz.in.ua
         }
 
-        // Generic parsing: remove common prefixes and try to get a meaningful part.
-        let cleaned = lowerHostname;
-        const prefixes = ['ip-', 'host-', 'dsl-', 'pool-', 'dyn-', 'static-', 'ppp-', 'gw-', 'client-', 'user-', 'wn-', 'nat-pool-'];
-        prefixes.forEach(p => {
-            if (cleaned.startsWith(p)) cleaned = cleaned.substring(p.length);
-        });
-        cleaned = cleaned.replace(/^([0-9]{1,3}[-.]){1,}/, ''); // Remove leading IP-like/number-dash parts
-
-        const parts = cleaned.split('.');
-        if (parts.length > 0 && parts[0] && parts[0].length > 0) {
-            let potentialName = parts[0];
-            // If the first part is too short or a common TLD part, and there are more parts, try to combine.
-            if ((potentialName.length <= 3 || ["com", "net", "org"].includes(potentialName)) && parts.length > 1 && parts[1].length > 0) {
-                 potentialName = parts[1]; // Try the next part
-                 if ((potentialName.length <= 3 || ["com", "net", "org"].includes(potentialName)) && parts.length > 2 && parts[2].length > 0){
-                    potentialName = parts[2]; // Try one more
-                 }
-            }
-             // Avoid returning just a TLD if it's the only thing left and it was part of a multi-segment domain
-            if (parts.length > 1 && (potentialName === parts[parts.length-1] || potentialName === parts[parts.length-2]) && potentialName.length <=3) {
-                 if (parts.length > 2 && parts[parts.length-2].length <=3 && parts[parts.length-1].length <=3) {
-                     return parts.slice(-3).join('.');
-                 }
-                 return parts.slice(-2).join('.');
-            }
-            return potentialName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        // Generic parsing
+        let parts = lowerHostname.split('.');
+        const commonInfraPrefixes = ['ip', 'host', 'dsl', 'pool', 'dyn', 'static', 'ppp', 'gw', 'client', 'user', 'wn', 'nat-pool', 'rev', 'ptr'];
+        
+        // Remove infrastructure prefixes from the beginning of the array of parts
+        while (parts.length > 0 && (commonInfraPrefixes.includes(parts[0]) || parts[0].match(/^([0-9]+[-]?)+$/) )) {
+            parts.shift();
         }
-        return hostname; // Fallback
+
+        if (parts.length === 0) return hostname; // Fallback to original if all parts removed
+
+        // Try to identify a meaningful name, often the part before a common SLD/TLD
+        if (parts.length >= 2) {
+            // If structure is domain.tld (e.g. google.com) or domain.sld.tld (e.g. example.co.uk)
+            let significantPart = parts[0]; 
+            if (parts.length > 2 && (parts[1] === 'co' || parts[1] === 'com' || parts[1] === 'net' || parts[1] === 'org')) {
+                 // e.g. customer.isp.co.uk -> "isp"
+                 // e.g. myisp.com.au -> "myisp"
+                 significantPart = parts[0];
+            } else if (parts.length === 2) { // domain.tld
+                 significantPart = parts[0];
+            } else if (parts.length > 2) { //  a.b.c.com -> take 'c' or 'b' if 'c' is too generic
+                significantPart = parts[parts.length - 3]; // Try third from end
+                 if(significantPart.length <= 3 && parts.length > 3) significantPart = parts[parts.length - 4]; // Try fourth
+            }
+
+
+            if (significantPart && significantPart.length > 0 && !(["com", "net", "org"].includes(significantPart) && parts.length - (parts.indexOf(significantPart)+1) <=1 )) {
+                 return significantPart.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+        }
+        // Fallback: join remaining parts if more than one, or take the first, or original hostname
+        if (parts.length > 1) return parts.join('.');
+        if (parts.length === 1 && parts[0]) return parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+        
+        return hostname; 
     }
+
 
     async function fetchGeoData() {
         const locationValueElId = 'locationValue';
@@ -197,9 +197,9 @@
         updateCellValue(locationValueElId, null, null, false, true);
         updateCellValue(providerValueElId, null, null, false, true);
         if (locationPrefixIconEl) locationPrefixIconEl.textContent = '';
+        // No need to touch other prefix icons as they will remain empty by default.
 
-
-        try { /* Fetch from ipwho.is for Location */
+        try { 
             const responseIpwho = await fetchWithTimeout(API_IPWHO_IS);
             if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
             const dataIpwho = await responseIpwho.json();
@@ -225,12 +225,12 @@
             console.error('Error fetching location data (ipwho.is):', error);
         }
             
-        try { /* Fetch from ipinfo.io for Provider (from rDNS) */
+        try { 
             const responseIpinfo = await fetchWithTimeout(API_IPINFO_IO);
             if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
             const dataIpinfo = await responseIpinfo.json();
             
-            const rawHostname = dataIpinfo.hostname; // No 'N/A' default here, let parseProvider handle it
+            const rawHostname = dataIpinfo.hostname;
             const deducedProvider = parseProviderFromHostname(rawHostname);
             updateCellValue(providerValueElId, deducedProvider, deducedProvider);
 
@@ -243,13 +243,13 @@
     async function displayBrowserAndOSInfo() {
         const browserValueElId = 'browserValue';
         const osValueElId = 'osValue';
-        const browserPrefixIconEl = document.getElementById('browserPrefixIcon');
-        const osPrefixIconEl = document.getElementById('osPrefixIcon');
+        // const browserPrefixIconEl = document.getElementById('browserPrefixIcon'); // Not used anymore
+        // const osPrefixIconEl = document.getElementById('osPrefixIcon');       // Not used anymore
         
         updateCellValue(browserValueElId, null, null, false, true);
         updateCellValue(osValueElId, null, null, false, true);
-        if (browserPrefixIconEl) browserPrefixIconEl.textContent = '';
-        if (osPrefixIconEl) osPrefixIconEl.textContent = '';
+        // if (browserPrefixIconEl) browserPrefixIconEl.textContent = ''; // Ensure empty
+        // if (osPrefixIconEl) osPrefixIconEl.textContent = '';       // Ensure empty
 
         let browserName, browserVersion, osName, osVersion;
         try {
@@ -283,8 +283,9 @@
         const browserFullString = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim();
         const osFullString = `${osName || 'Unknown'} ${osVersion || ''}`.trim();
         
-        if (browserPrefixIconEl) browserPrefixIconEl.textContent = getBrowserEmoji(browserName);
-        if (osPrefixIconEl) osPrefixIconEl.textContent = getOsEmoji(osName);
+        // No longer setting browser/OS prefix icons
+        // if (browserPrefixIconEl) browserPrefixIconEl.textContent = getBrowserEmoji(browserName); // REMOVED
+        // if (osPrefixIconEl) osPrefixIconEl.textContent = getOsEmoji(osName);                   // REMOVED
 
         updateCellValue(browserValueElId, browserFullString, browserFullString);
         updateCellValue(osValueElId, osFullString, osFullString);

@@ -9,7 +9,7 @@
     --shadow-color-light: rgba(0, 0, 0, 0.08);
     --shadow-color-medium: rgba(0, 0, 0, 0.05);
     --loading-opacity: 0.7;
-    --prefix-icon-width: 28px; /* Width for prefix icons for alignment */
+    --prefix-icon-width: 28px; 
 }
 
 @media (prefers-color-scheme: dark) {
@@ -94,6 +94,7 @@ h2 {
     color: var(--label-text-color);
     transition: color 0.3s ease;
 }
+/* No flag emoji in label by default */
 
 .cell-with-prefix {
     display: flex;
@@ -101,17 +102,19 @@ h2 {
 }
 
 .cell-prefix-icon {
-    font-size: 1.3em; /* Size of emoji */
-    width: var(--prefix-icon-width); /* Fixed width for alignment */
-    min-width: var(--prefix-icon-width); /* Ensure it doesn't shrink */
+    font-size: 1.3em; 
+    width: 0; /* Default to no width if empty */
+    min-width: 0;
     text-align: center;
-    margin-right: 10px; /* Space between icon and cell */
+    margin-right: 0; /* Default to no margin if empty */
     flex-shrink: 0;
+    transition: width 0.2s ease, margin-right 0.2s ease;
 }
-.cell-prefix-icon:empty { /* If no emoji, maintain space for alignment */
-    /* Can add a non-breaking space or keep it empty if width handles it */
+.cell-prefix-icon:not(:empty) { /* Only apply width/margin if it has content (the emoji) */
+    width: var(--prefix-icon-width);
+    min-width: var(--prefix-icon-width);
+    margin-right: 10px; 
 }
-
 
 .info-cell {
     background-color: var(--cell-bg-color);
@@ -125,7 +128,7 @@ h2 {
     border: 1px solid var(--cell-border-color);
     box-shadow: 0 2px 5px var(--shadow-color-medium);
     transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-    flex-grow: 1; /* Cell takes remaining space in cell-with-prefix */
+    flex-grow: 1; 
 }
 
 .cell-value {
@@ -190,10 +193,10 @@ h2 {
     .info-cell {
         padding: 12px 15px;
     }
-    .cell-prefix-icon {
+    .cell-prefix-icon:not(:empty) { /* Adjust prefix icon for mobile if needed */
         font-size: 1.2em;
         margin-right: 8px;
-        width: calc(var(--prefix-icon-width) - 4px); /* Adjust if needed */
+        width: calc(var(--prefix-icon-width) - 4px); 
         min-width: calc(var(--prefix-icon-width) - 4px);
     }
 }
