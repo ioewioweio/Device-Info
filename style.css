@@ -94,7 +94,7 @@ h2 {
 }
 .item-label .flag-emoji {
     margin-left: 0.4em;
-    font-size: 1.15em; /* Make flag slightly more prominent if needed */
+    font-size: 1.15em;
     vertical-align: middle;
 }
 
@@ -109,37 +109,38 @@ h2 {
     justify-content: space-between;
     border: 1px solid var(--cell-border-color);
     box-shadow: 0 2px 5px var(--shadow-color-medium);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease-out, border-color 0.3s ease;
-}
-
-.info-cell.copyable:hover { /* This hover is for the transform effect */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px var(--shadow-color-light);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    /* Removed transform on hover */
 }
 
 .cell-value {
     font-weight: 500;
     word-break: break-all;
     flex-grow: 1;
-    /* Text darkening on hover removed */
+    /* No opacity change on hover for text */
 }
 
 .cell-value .error-message {
     font-style: italic;
     opacity: 0.9;
 }
-.cell-value.loading .loading-text { /* Class applied to cell-value itself now */
+.cell-value.loading .loading-text {
      opacity: var(--loading-opacity);
 }
 
 .copy-icon {
     margin-left: 12px;
-    cursor: pointer;
-    display: none; 
+    /* display: none;  Always controlled by JS via icon-active on parent now */
     user-select: none;
     width: 18px;  
     height: 18px;
     flex-shrink: 0;
+    cursor: pointer; /* Icon itself is clickable */
+    display: none; /* Default hidden, JS will show if icon-active */
+}
+
+.info-cell.icon-active .copy-icon { /* Static display if icon-active, not hover */
+    display: inline-block;
 }
 
 .copy-icon svg {
@@ -148,11 +149,6 @@ h2 {
     height: 100%;
     fill: var(--text-color);
     transition: fill 0.3s ease;
-}
-
-/* Icon only appears if cell has 'icon-active' and is hovered */
-.info-cell.icon-active:hover .copy-icon {
-    display: inline-block;
 }
 
 /* Mobile Responsiveness */

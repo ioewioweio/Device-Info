@@ -36,20 +36,19 @@
     const SVG_COPIED_ICON = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
 
     function makeCopyable(cellElementId, valueElementId, iconElementId) {
-        const cellElement = document.getElementById(cellElementId);
-        const valueElement = document.getElementById(valueElementId);
-        const iconElement = document.getElementById(iconElementId);
+        const cellElement = document.getElementById(cellElementId); // This is the div.info-cell
+        const valueElement = document.getElementById(valueElementId); // This is span.cell-value
+        const iconElement = document.getElementById(iconElementId);  // This is span.copy-icon
         
         if (!cellElement || !valueElement || !iconElement) return;
 
-        // The 'copyable' class for general hover effects (like transform) is on the cell in HTML.
-        // The 'icon-active' class (controlled by updateCellValue) will determine if the icon appears.
         iconElement.innerHTML = SVG_COPY_ICON;
-        cellElement.style.cursor = 'pointer'; 
+        // cellElement.style.cursor = 'pointer'; // Cell itself is not clickable for copy
+        // iconElement.style.cursor = 'pointer'; // Set by CSS if needed, or here.
 
         const copyAction = async () => {
             const valueToCopy = valueElement.dataset.copyValue;
-            // Check if the icon should be active (meaning there's something valid to copy)
+            // Check if the icon is active (meaning there's something valid to copy)
             if (!cellElement.classList.contains('icon-active') || 
                 valueToCopy === undefined || valueToCopy === null || valueToCopy === '' || 
                 ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)'].includes(valueToCopy)) {
@@ -63,7 +62,8 @@
                 console.error('Failed to copy text: ', err);
             }
         };
-        cellElement.addEventListener('click', copyAction);
+        // Only the icon is clickable for copy
+        iconElement.addEventListener('click', copyAction);
     }
 
     async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
@@ -78,11 +78,11 @@
     function updateCellValue(valueElementId, valueForDisplay, valueForCopy, isError = false, isLoading = false) {
         const element = document.getElementById(valueElementId);
         if (!element) return;
-        const cellElement = element.closest('.info-cell');
+        const cellElement = element.closest('.info-cell'); // Get parent .info-cell
 
         if (isLoading) {
             element.innerHTML = `<span class="loading-text">Loading...</span>`;
-            element.className = 'cell-value loading'; // Keep .loading for potential specific text styling
+            element.className = 'cell-value loading';
             element.dataset.copyValue = ''; 
             if (cellElement) cellElement.classList.remove('icon-active');
         } else if (isError) {
@@ -94,7 +94,7 @@
             element.textContent = valueForDisplay || 'N/A';
             element.dataset.copyValue = valueForCopy || (valueForDisplay === 'N/A' ? 'N/A' : '');
             element.className = 'cell-value';
-            // Check if valueForCopy is actually copyable before enabling icon
+            
             const uncopyableValues = ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)', ''];
             if (cellElement && valueForCopy && !uncopyableValues.includes(valueForCopy)) {
                 cellElement.classList.add('icon-active');
@@ -125,6 +125,8 @@
     }
     
     const API_IPWHO_IS = 'https://ipwho.is/';
+    const API_IPINFO_IO = 'https://ipinfo.io/json';
+
 
     function getFlagEmoji(countryCode) {
         if (!countryCode || countryCode.length !== 2) return '';
@@ -134,14 +136,62 @@
         } catch (e) { return ''; }
     }
 
+    function parseProviderFromHostname(hostname) {
+        if (!hostname || typeof hostname !== 'string' || !hostname.includes('.')) {
+            return 'N/A';
+        }
+        // Simplified: remove common prefixes and try to get a meaningful part.
+        // This is a basic heuristic and might need refinement based on common rDNS patterns.
+        let cleaned = hostname.toLowerCase();
+        const prefixes = ['ip-', 'host-', 'dsl-', 'pool-', 'dyn-', 'static-', 'ppp-', 'gw-', 'client-', 'user-', 'wn-', 'nat-pool-'];
+        prefixes.forEach(p => {
+            if (cleaned.startsWith(p)) cleaned = cleaned.substring(p.length);
+        });
+        
+        // Remove leading numbers and hyphens that might remain from IP-like parts
+        cleaned = cleaned.replace(/^([0-9]+[-.])*/, '');
+
+        const parts = cleaned.split('.');
+        if (parts.length >= 2) {
+            // Try to avoid returning just TLD or SLD like 'com' or 'co' if there's more substance
+            if (parts.length > 2 && (parts[0].length <= 3 || ["com", "net", "org"].includes(parts[0]))) {
+                 // Example: "google.com.ua" -> parts ["google", "com", "ua"], parts[0] is "google"
+                 // Example: "com.ua" -> parts ["com", "ua"], parts[0] is "com", so this part of if is true
+                if (parts[1] && !(parts[1].length <=3 && parts.length === 2)) { // avoid returning "ua" from "com.ua"
+                     let potentialProvider = parts[0] + "." + parts[1]; // e.g. google.com
+                     // If that is something like com.ua, just return that
+                     if (parts[0].length <=3 && parts[1].length <=3 && parts.length > 2) potentialProvider = parts.slice(0,3).join('.');
+                     else if (parts[0].length <=3 && parts[1].length <=3 && parts.length <=2) potentialProvider = parts.join('.');
+
+                     return potentialProvider.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                }
+            }
+            // If the first significant part is not too generic, use it
+            if (parts[0] && parts[0].length > 3 && !["www", "mail", "ftp"].includes(parts[0])) {
+                 let providerName = parts[0];
+                 return providerName.charAt(0).toUpperCase() + providerName.slice(1); // Capitalize, e.g., "Soyuz"
+            }
+            // Fallback to a general domain structure
+            if (parts.length > 2 && parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 3) {
+                return parts.slice(-3).join('.'); // e.g. soyuz.in.ua
+            }
+            return parts.slice(-2).join('.'); // e.g. example.com
+        }
+        return hostname; // Absolute fallback
+    }
+
+
     async function fetchGeoData() {
         const locationValueElId = 'locationValue';
         const locationLabelEl = document.getElementById('locationLabel');
+        const providerValueElId = 'providerValue';
         
         updateCellValue(locationValueElId, null, null, false, true);
-        if (locationLabelEl) locationLabelEl.textContent = 'Location'; // Reset label
+        updateCellValue(providerValueElId, null, null, false, true);
+        if (locationLabelEl) locationLabelEl.textContent = 'Location'; 
 
-        try {
+        try { /* Fetch from ipwho.is for Location */
             const responseIpwho = await fetchWithTimeout(API_IPWHO_IS);
             if (!responseIpwho.ok) throw new Error(`ipwho.is HTTP ${responseIpwho.status}`);
             const dataIpwho = await responseIpwho.json();
@@ -156,7 +206,7 @@
             if (locationLabelEl && flag) {
                 locationLabelEl.innerHTML = `Location <span class="flag-emoji">${flag}</span>`;
             } else if (locationLabelEl) {
-                locationLabelEl.textContent = 'Location'; // Fallback if no flag
+                locationLabelEl.textContent = 'Location'; 
             }
 
             let locationString = 'N/A';
@@ -167,24 +217,35 @@
             updateCellValue(locationValueElId, locationString, locationString);
         } catch (error) {
             updateCellValue(locationValueElId, 'Error fetching location', '', true);
-            if (locationLabelEl) locationLabelEl.textContent = 'Location'; // Reset on error
-            console.error('Error fetching geo data:', error);
+            if (locationLabelEl) locationLabelEl.textContent = 'Location';
+            console.error('Error fetching location data (ipwho.is):', error);
+        }
+            
+        try { /* Fetch from ipinfo.io for Provider (from rDNS) */
+            const responseIpinfo = await fetchWithTimeout(API_IPINFO_IO);
+            if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
+            const dataIpinfo = await responseIpinfo.json();
+            
+            const rawHostname = dataIpinfo.hostname || 'N/A';
+            const deducedProvider = parseProviderFromHostname(rawHostname);
+            updateCellValue(providerValueElId, deducedProvider, deducedProvider);
+
+        } catch (error) {
+            updateCellValue(providerValueElId, 'Error fetching provider', '', true);
+            console.error('Error fetching provider data (ipinfo.io):', error);
         }
     }
 
-    async function displayBrowserAndOSInfo() { /* ... unchanged from previous response ... */
+    async function displayBrowserAndOSInfo() { /* ... unchanged ... */
         const browserValueElId = 'browserValue';
         const osValueElId = 'osValue';
-        
         updateCellValue(browserValueElId, null, null, false, true);
         updateCellValue(osValueElId, null, null, false, true);
         let browserName, browserVersion, osName, osVersion;
-
         try {
             if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
                 const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "fullVersionList"]);
-                osName = highEntropyValues.platform || null;
-                osVersion = highEntropyValues.platformVersion || null;
+                osName = highEntropyValues.platform || null; osVersion = highEntropyValues.platformVersion || null;
                 if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
                     let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
                                        highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
@@ -194,11 +255,9 @@
                 }
             }
         } catch (uachError) { console.warn('Could not get UA Client Hints:', uachError); }
-
         if (!browserName || !osName || !browserVersion || !osVersion) {
             if (typeof UAParser === 'undefined') {
-                updateCellValue(browserValueElId, 'Error (Lib missing)', '', true);
-                updateCellValue(osValueElId, 'Error (Lib missing)', '', true);
+                updateCellValue(browserValueElId, 'Error (Lib missing)', '', true); updateCellValue(osValueElId, 'Error (Lib missing)', '', true);
                 console.error('UAParser library not loaded.'); return;
             }
             try {
@@ -206,8 +265,7 @@
                 if (!browserName && result.browser && result.browser.name) { browserName = result.browser.name; browserVersion = result.browser.version; }
                 if (!osName && result.os && result.os.name) { osName = result.os.name; osVersion = result.os.version; }
             } catch (parseError) {
-                updateCellValue(browserValueElId, null, '', true);
-                updateCellValue(osValueElId, null, '', true);
+                updateCellValue(browserValueElId, null, '', true); updateCellValue(osValueElId, null, '', true);
                 console.error('Error parsing UA string with UAParser:', parseError); return;
             }
         }
@@ -217,25 +275,20 @@
         updateCellValue(osValueElId, osFullString, osFullString);
     }
 
-
     window.onload = async () => {
-        if (document.getElementById('browserCompatibilityMessage').style.display === 'block') {
-            return; 
-        }
-
+        if (document.getElementById('browserCompatibilityMessage').style.display === 'block') return;
         fetchIP('ipv4Value', 'ipv4');
         fetchIP('ipv6Value', 'ipv6');
         fetchGeoData(); 
         try { await displayBrowserAndOSInfo(); } catch(e) {
-            updateCellValue('browserValue', null, '', true);
-            updateCellValue('osValue', null, '', true);
+            updateCellValue('browserValue', null, '', true); updateCellValue('osValue', null, '', true);
             console.error('Error displaying browser/OS info:', e);
         }
-
         const copyableCells = [
             { cell: 'ipv4Cell', value: 'ipv4Value', icon: 'ipv4CopyIcon' }, 
             { cell: 'ipv6Cell', value: 'ipv6Value', icon: 'ipv6CopyIcon' },
             { cell: 'locationCell', value: 'locationValue', icon: 'locationCopyIcon' },
+            { cell: 'providerCell', value: 'providerValue', icon: 'providerCopyIcon' },
             { cell: 'browserCell', value: 'browserValue', icon: 'browserCopyIcon' }, 
             { cell: 'osCell', value: 'osValue', icon: 'osCopyIcon' }
         ];
