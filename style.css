@@ -9,6 +9,7 @@
     --shadow-color-light: rgba(0, 0, 0, 0.08);
     --shadow-color-medium: rgba(0, 0, 0, 0.05);
     --loading-opacity: 0.7;
+    --prefix-icon-width: 28px; /* Width for prefix icons for alignment */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -81,7 +82,8 @@ h2 {
 }
 
 .info-item-wrapper {
-    /* Grid item */
+    display: flex;
+    flex-direction: column;
 }
 
 .item-label {
@@ -92,11 +94,24 @@ h2 {
     color: var(--label-text-color);
     transition: color 0.3s ease;
 }
-.item-label .flag-emoji {
-    margin-left: 0.4em;
-    font-size: 1.15em;
-    vertical-align: middle;
+
+.cell-with-prefix {
+    display: flex;
+    align-items: center;
 }
+
+.cell-prefix-icon {
+    font-size: 1.3em; /* Size of emoji */
+    width: var(--prefix-icon-width); /* Fixed width for alignment */
+    min-width: var(--prefix-icon-width); /* Ensure it doesn't shrink */
+    text-align: center;
+    margin-right: 10px; /* Space between icon and cell */
+    flex-shrink: 0;
+}
+.cell-prefix-icon:empty { /* If no emoji, maintain space for alignment */
+    /* Can add a non-breaking space or keep it empty if width handles it */
+}
+
 
 .info-cell {
     background-color: var(--cell-bg-color);
@@ -110,14 +125,13 @@ h2 {
     border: 1px solid var(--cell-border-color);
     box-shadow: 0 2px 5px var(--shadow-color-medium);
     transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-    /* Removed transform on hover */
+    flex-grow: 1; /* Cell takes remaining space in cell-with-prefix */
 }
 
 .cell-value {
     font-weight: 500;
     word-break: break-all;
     flex-grow: 1;
-    /* No opacity change on hover for text */
 }
 
 .cell-value .error-message {
@@ -130,16 +144,15 @@ h2 {
 
 .copy-icon {
     margin-left: 12px;
-    /* display: none;  Always controlled by JS via icon-active on parent now */
     user-select: none;
     width: 18px;  
     height: 18px;
     flex-shrink: 0;
-    cursor: pointer; /* Icon itself is clickable */
-    display: none; /* Default hidden, JS will show if icon-active */
+    cursor: pointer;
+    display: none; 
 }
 
-.info-cell.icon-active .copy-icon { /* Static display if icon-active, not hover */
+.info-cell.icon-active .copy-icon {
     display: inline-block;
 }
 
@@ -176,5 +189,11 @@ h2 {
     }
     .info-cell {
         padding: 12px 15px;
+    }
+    .cell-prefix-icon {
+        font-size: 1.2em;
+        margin-right: 8px;
+        width: calc(var(--prefix-icon-width) - 4px); /* Adjust if needed */
+        min-width: calc(var(--prefix-icon-width) - 4px);
     }
 }

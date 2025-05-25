@@ -36,19 +36,17 @@
     const SVG_COPIED_ICON = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
 
     function makeCopyable(cellElementId, valueElementId, iconElementId) {
-        const cellElement = document.getElementById(cellElementId); // This is the div.info-cell
-        const valueElement = document.getElementById(valueElementId); // This is span.cell-value
-        const iconElement = document.getElementById(iconElementId);  // This is span.copy-icon
+        const cellElement = document.getElementById(cellElementId);
+        const valueElement = document.getElementById(valueElementId);
+        const iconElement = document.getElementById(iconElementId);
         
         if (!cellElement || !valueElement || !iconElement) return;
 
         iconElement.innerHTML = SVG_COPY_ICON;
-        // cellElement.style.cursor = 'pointer'; // Cell itself is not clickable for copy
-        // iconElement.style.cursor = 'pointer'; // Set by CSS if needed, or here.
+        // iconElement.style.cursor = 'pointer'; // Handled by CSS
 
         const copyAction = async () => {
             const valueToCopy = valueElement.dataset.copyValue;
-            // Check if the icon is active (meaning there's something valid to copy)
             if (!cellElement.classList.contains('icon-active') || 
                 valueToCopy === undefined || valueToCopy === null || valueToCopy === '' || 
                 ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)'].includes(valueToCopy)) {
@@ -62,8 +60,7 @@
                 console.error('Failed to copy text: ', err);
             }
         };
-        // Only the icon is clickable for copy
-        iconElement.addEventListener('click', copyAction);
+        iconElement.addEventListener('click', copyAction); // Copy only on icon click
     }
 
     async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
@@ -78,7 +75,7 @@
     function updateCellValue(valueElementId, valueForDisplay, valueForCopy, isError = false, isLoading = false) {
         const element = document.getElementById(valueElementId);
         if (!element) return;
-        const cellElement = element.closest('.info-cell'); // Get parent .info-cell
+        const cellElement = element.closest('.info-cell'); 
 
         if (isLoading) {
             element.innerHTML = `<span class="loading-text">Loading...</span>`;
@@ -127,7 +124,6 @@
     const API_IPWHO_IS = 'https://ipwho.is/';
     const API_IPINFO_IO = 'https://ipinfo.io/json';
 
-
     function getFlagEmoji(countryCode) {
         if (!countryCode || countryCode.length !== 2) return '';
         try {
@@ -135,61 +131,73 @@
             return String.fromCodePoint(...codePoints);
         } catch (e) { return ''; }
     }
+    
+    function getOsEmoji(osNameStr) {
+        if (!osNameStr) return '⚙️';
+        const os = osNameStr.toLowerCase();
+        if (os.includes('windows')) return '💻';
+        if (os.includes('mac')) return '💻'; 
+        if (os.includes('ios')) return '📱';
+        if (os.includes('linux')) return '🐧';
+        if (os.includes('android')) return '🤖';
+        return '💻';
+    }
+
+    function getBrowserEmoji(browserNameStr) {
+        // For now, a generic web emoji. Could be expanded.
+        return '🌐';
+    }
 
     function parseProviderFromHostname(hostname) {
-        if (!hostname || typeof hostname !== 'string' || !hostname.includes('.')) {
+        if (!hostname || typeof hostname !== 'string' || hostname === 'N/A' || !hostname.includes('.')) {
             return 'N/A';
         }
-        // Simplified: remove common prefixes and try to get a meaningful part.
-        // This is a basic heuristic and might need refinement based on common rDNS patterns.
-        let cleaned = hostname.toLowerCase();
+        const lowerHostname = hostname.toLowerCase();
+        
+        // Specific check for known patterns like "soyuz.in.ua"
+        if (lowerHostname.includes('soyuz.in.ua')) {
+            return 'Soyuz Telecom (deduced)'; // Example
+        }
+
+        // Generic parsing: remove common prefixes and try to get a meaningful part.
+        let cleaned = lowerHostname;
         const prefixes = ['ip-', 'host-', 'dsl-', 'pool-', 'dyn-', 'static-', 'ppp-', 'gw-', 'client-', 'user-', 'wn-', 'nat-pool-'];
         prefixes.forEach(p => {
             if (cleaned.startsWith(p)) cleaned = cleaned.substring(p.length);
         });
-        
-        // Remove leading numbers and hyphens that might remain from IP-like parts
-        cleaned = cleaned.replace(/^([0-9]+[-.])*/, '');
+        cleaned = cleaned.replace(/^([0-9]{1,3}[-.]){1,}/, ''); // Remove leading IP-like/number-dash parts
 
         const parts = cleaned.split('.');
-        if (parts.length >= 2) {
-            // Try to avoid returning just TLD or SLD like 'com' or 'co' if there's more substance
-            if (parts.length > 2 && (parts[0].length <= 3 || ["com", "net", "org"].includes(parts[0]))) {
-                 // Example: "google.com.ua" -> parts ["google", "com", "ua"], parts[0] is "google"
-                 // Example: "com.ua" -> parts ["com", "ua"], parts[0] is "com", so this part of if is true
-                if (parts[1] && !(parts[1].length <=3 && parts.length === 2)) { // avoid returning "ua" from "com.ua"
-                     let potentialProvider = parts[0] + "." + parts[1]; // e.g. google.com
-                     // If that is something like com.ua, just return that
-                     if (parts[0].length <=3 && parts[1].length <=3 && parts.length > 2) potentialProvider = parts.slice(0,3).join('.');
-                     else if (parts[0].length <=3 && parts[1].length <=3 && parts.length <=2) potentialProvider = parts.join('.');
-
-                     return potentialProvider.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-                }
+        if (parts.length > 0 && parts[0] && parts[0].length > 0) {
+            let potentialName = parts[0];
+            // If the first part is too short or a common TLD part, and there are more parts, try to combine.
+            if ((potentialName.length <= 3 || ["com", "net", "org"].includes(potentialName)) && parts.length > 1 && parts[1].length > 0) {
+                 potentialName = parts[1]; // Try the next part
+                 if ((potentialName.length <= 3 || ["com", "net", "org"].includes(potentialName)) && parts.length > 2 && parts[2].length > 0){
+                    potentialName = parts[2]; // Try one more
+                 }
             }
-            // If the first significant part is not too generic, use it
-            if (parts[0] && parts[0].length > 3 && !["www", "mail", "ftp"].includes(parts[0])) {
-                 let providerName = parts[0];
-                 return providerName.charAt(0).toUpperCase() + providerName.slice(1); // Capitalize, e.g., "Soyuz"
+             // Avoid returning just a TLD if it's the only thing left and it was part of a multi-segment domain
+            if (parts.length > 1 && (potentialName === parts[parts.length-1] || potentialName === parts[parts.length-2]) && potentialName.length <=3) {
+                 if (parts.length > 2 && parts[parts.length-2].length <=3 && parts[parts.length-1].length <=3) {
+                     return parts.slice(-3).join('.');
+                 }
+                 return parts.slice(-2).join('.');
             }
-            // Fallback to a general domain structure
-            if (parts.length > 2 && parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 3) {
-                return parts.slice(-3).join('.'); // e.g. soyuz.in.ua
-            }
-            return parts.slice(-2).join('.'); // e.g. example.com
+            return potentialName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         }
-        return hostname; // Absolute fallback
+        return hostname; // Fallback
     }
-
 
     async function fetchGeoData() {
         const locationValueElId = 'locationValue';
-        const locationLabelEl = document.getElementById('locationLabel');
+        const locationPrefixIconEl = document.getElementById('locationPrefixIcon');
         const providerValueElId = 'providerValue';
         
         updateCellValue(locationValueElId, null, null, false, true);
         updateCellValue(providerValueElId, null, null, false, true);
-        if (locationLabelEl) locationLabelEl.textContent = 'Location'; 
+        if (locationPrefixIconEl) locationPrefixIconEl.textContent = '';
+
 
         try { /* Fetch from ipwho.is for Location */
             const responseIpwho = await fetchWithTimeout(API_IPWHO_IS);
@@ -203,12 +211,8 @@
             const countryCode = dataIpwho.country_code || '';
             const flag = getFlagEmoji(countryCode);
 
-            if (locationLabelEl && flag) {
-                locationLabelEl.innerHTML = `Location <span class="flag-emoji">${flag}</span>`;
-            } else if (locationLabelEl) {
-                locationLabelEl.textContent = 'Location'; 
-            }
-
+            if (locationPrefixIconEl) locationPrefixIconEl.textContent = flag;
+            
             let locationString = 'N/A';
             if (city && countryFullName) locationString = `${city}, ${countryFullName}`;
             else if (city) locationString = city; 
@@ -216,8 +220,8 @@
             
             updateCellValue(locationValueElId, locationString, locationString);
         } catch (error) {
-            updateCellValue(locationValueElId, 'Error fetching location', '', true);
-            if (locationLabelEl) locationLabelEl.textContent = 'Location';
+            updateCellValue(locationValueElId, 'Error', '', true);
+            if (locationPrefixIconEl) locationPrefixIconEl.textContent = '⚠️';
             console.error('Error fetching location data (ipwho.is):', error);
         }
             
@@ -226,21 +230,27 @@
             if (!responseIpinfo.ok) throw new Error(`ipinfo.io HTTP ${responseIpinfo.status}`);
             const dataIpinfo = await responseIpinfo.json();
             
-            const rawHostname = dataIpinfo.hostname || 'N/A';
+            const rawHostname = dataIpinfo.hostname; // No 'N/A' default here, let parseProvider handle it
             const deducedProvider = parseProviderFromHostname(rawHostname);
             updateCellValue(providerValueElId, deducedProvider, deducedProvider);
 
         } catch (error) {
-            updateCellValue(providerValueElId, 'Error fetching provider', '', true);
+            updateCellValue(providerValueElId, 'Error', '', true);
             console.error('Error fetching provider data (ipinfo.io):', error);
         }
     }
 
-    async function displayBrowserAndOSInfo() { /* ... unchanged ... */
+    async function displayBrowserAndOSInfo() {
         const browserValueElId = 'browserValue';
         const osValueElId = 'osValue';
+        const browserPrefixIconEl = document.getElementById('browserPrefixIcon');
+        const osPrefixIconEl = document.getElementById('osPrefixIcon');
+        
         updateCellValue(browserValueElId, null, null, false, true);
         updateCellValue(osValueElId, null, null, false, true);
+        if (browserPrefixIconEl) browserPrefixIconEl.textContent = '';
+        if (osPrefixIconEl) osPrefixIconEl.textContent = '';
+
         let browserName, browserVersion, osName, osVersion;
         try {
             if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
@@ -255,6 +265,7 @@
                 }
             }
         } catch (uachError) { console.warn('Could not get UA Client Hints:', uachError); }
+
         if (!browserName || !osName || !browserVersion || !osVersion) {
             if (typeof UAParser === 'undefined') {
                 updateCellValue(browserValueElId, 'Error (Lib missing)', '', true); updateCellValue(osValueElId, 'Error (Lib missing)', '', true);
@@ -271,6 +282,10 @@
         }
         const browserFullString = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim();
         const osFullString = `${osName || 'Unknown'} ${osVersion || ''}`.trim();
+        
+        if (browserPrefixIconEl) browserPrefixIconEl.textContent = getBrowserEmoji(browserName);
+        if (osPrefixIconEl) osPrefixIconEl.textContent = getOsEmoji(osName);
+
         updateCellValue(browserValueElId, browserFullString, browserFullString);
         updateCellValue(osValueElId, osFullString, osFullString);
     }
