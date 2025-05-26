@@ -4,12 +4,212 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Your Info</title>
-    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/src/ua-parser.min.js"></script>
+    <style>
+:root {
+    --bg-color: #f0f2f5;
+    --text-color: #000000;
+    --label-text-color: #333333; 
+    --container-bg-color: #ffffff;
+    --cell-bg-color: #fdfdfd; 
+    --border-color: #e0e0e0;
+    --cell-border-color: #eaeaea;
+    --shadow-color-light: rgba(0, 0, 0, 0.08);
+    --shadow-color-medium: rgba(0, 0, 0, 0.05);
+    --loading-opacity: 0.7;
+    --prefix-icon-width: 28px; 
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --label-text-color: #c0c0c0;
+        --container-bg-color: #1e1e1e;
+        --cell-bg-color: #2c2c2c;
+        --border-color: #383838;
+        --cell-border-color: #404040;
+        --shadow-color-light: rgba(0, 0, 0, 0.5); 
+        --shadow-color-medium: rgba(0, 0, 0, 0.3);
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; 
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: 20px;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#browserCompatibilityMessage {
+    background-color: var(--container-bg-color);
+    color: var(--text-color);
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 8px 25px var(--shadow-color-light);
+}
+#browserCompatibilityMessage h1 { font-size: 1.8em; margin-bottom: 15px; }
+#browserCompatibilityMessage p { font-size: 1.1em; line-height: 1.6; margin-bottom: 10px; }
+
+.info-container {
+    background-color: var(--container-bg-color);
+    padding: 25px 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 20px -5px var(--shadow-color-light), 0 4px 8px -4px var(--shadow-color-medium);
+    width: 100%;
+    max-width: 800px; 
+    margin: 20px auto;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 30px;
+    font-size: 1.8em; 
+    font-weight: 600;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    transition: border-color 0.3s ease;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.info-item-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9em;
+    margin-bottom: 8px; 
+    color: var(--label-text-color);
+    transition: color 0.3s ease;
+}
+
+.cell-with-prefix {
+    display: flex;
+    align-items: center;
+}
+
+.cell-prefix-icon {
+    font-size: 1.3em; 
+    width: 0;
+    min-width: 0;
+    text-align: center;
+    margin-right: 0;
+    flex-shrink: 0;
+    transition: width 0.2s ease, margin-right 0.2s ease;
+}
+.cell-prefix-icon:not(:empty) {
+    width: var(--prefix-icon-width);
+    min-width: var(--prefix-icon-width);
+    margin-right: 10px; 
+}
+
+.info-cell {
+    background-color: var(--cell-bg-color);
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-size: 1em;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid var(--cell-border-color);
+    box-shadow: 0 2px 5px var(--shadow-color-medium);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    flex-grow: 1; 
+}
+
+.cell-value {
+    font-weight: 500;
+    word-break: break-all;
+    flex-grow: 1;
+}
+
+.cell-value .error-message {
+    font-style: italic;
+    opacity: 0.9;
+}
+.cell-value.loading .loading-text {
+     opacity: var(--loading-opacity);
+}
+
+.copy-icon {
+    margin-left: 12px;
+    user-select: none;
+    width: 18px;  
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: none; 
+}
+
+.info-cell.icon-active .copy-icon {
+    display: inline-block;
+}
+
+.copy-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: var(--text-color);
+    transition: fill 0.3s ease;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 15px; 
+        justify-content: flex-start; 
+    }
+    .info-container {
+        padding: 20px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    h2 {
+        font-size: 1.5em;
+        margin-bottom: 20px;
+    }
+    .info-grid {
+        grid-template-columns: 1fr; 
+        gap: 20px;
+    }
+    .item-label {
+        font-size: 0.85em;
+        margin-bottom: 6px;
+    }
+    .info-cell {
+        padding: 12px 15px;
+    }
+    .cell-prefix-icon:not(:empty) {
+        font-size: 1.2em;
+        margin-right: 8px;
+        width: calc(var(--prefix-icon-width) - 4px); 
+        min-width: calc(var(--prefix-icon-width) - 4px);
+    }
+}
+    </style>
 </head>
 <body>
-    <div id="browserCompatibilityMessage" style="display: none;">
-        </div>
+    <div id="browserCompatibilityMessage" style="display: none;"></div>
 
     <div class="info-container" id="mainInfoContainer">
         <h2>Your Info</h2>
@@ -52,7 +252,7 @@
                 <div class="cell-with-prefix">
                      <span class="cell-prefix-icon" id="ispPrefixIcon"></span> 
                     <div class="info-cell" id="providerCell">
-                        <span class="cell-value" id="providerValue">Loading...</span>
+                        <span class="cell-value" id="providerValue">I'll do it later (or not)</span>
                         <span class="copy-icon" id="providerCopyIcon"></span>
                     </div>
                 </div>
@@ -82,6 +282,261 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+(function() {
+    try {
+        const uaString = navigator.userAgent || "";
+        const parser = new UAParser(uaString);
+        const browserInfo = parser.getBrowser();
+        const browserName = browserInfo.name ? browserInfo.name.toLowerCase() : "";
+
+        const isOfficiallySupported = 
+            (browserName.includes('chrome') && !uaString.includes("Edg/") && !uaString.includes("OPR/")) || 
+            browserName.includes('chromium') ||
+            (uaString.includes("Edg/") && uaString.includes("Chrome")) || 
+            (uaString.includes("OPR/") && uaString.includes("Chrome")) || 
+            browserName.includes('brave') ||
+            browserName.includes('vivaldi');
+
+        if (!isOfficiallySupported && (browserName.includes('safari') || browserName.includes('firefox') || browserName.includes('fxios') || browserName.includes('crios') || browserName.includes('edgios'))) {
+            const mainContainer = document.getElementById('mainInfoContainer');
+            if (mainContainer) mainContainer.style.display = 'none';
+            const messageDiv = document.getElementById('browserCompatibilityMessage');
+            if (messageDiv) {
+                messageDiv.style.display = 'block';
+                messageDiv.innerHTML = `
+                    <h1>Compatibility Notice</h1>
+                    <p>This page is optimized for modern desktop Chromium-based browsers (e.g., Google Chrome, Microsoft Edge, Opera, Brave).</p>
+                    <p>You may experience limited functionality or display issues on other browsers.</p>
+                    <p style="font-size:0.9em; opacity:0.7;">Detected: ${browserInfo.name || 'Unknown'} ${browserInfo.version || ''}</p>
+                `;
+            }
+            return; 
+        }
+    } catch (e) {
+        console.warn("Browser detection error:", e);
+    }
+
+    const SVG_COPY_ICON = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+    const SVG_COPIED_ICON = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
+
+    function makeCopyable(cellElementId, valueElementId, iconElementId) {
+        const cellElement = document.getElementById(cellElementId);
+        const valueElement = document.getElementById(valueElementId);
+        const iconElement = document.getElementById(iconElementId);
+        
+        if (!cellElement || !valueElement || !iconElement) return;
+
+        iconElement.innerHTML = SVG_COPY_ICON;
+
+        const copyAction = async () => {
+            const valueToCopy = valueElement.dataset.copyValue;
+            if (!cellElement.classList.contains('icon-active') || 
+                !valueToCopy || 
+                ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)', 'I\'ll do it later (or not)'].includes(valueToCopy)) {
+                return; 
+            }
+            try {
+                await navigator.clipboard.writeText(valueToCopy);
+                iconElement.innerHTML = SVG_COPIED_ICON;
+                setTimeout(() => { iconElement.innerHTML = SVG_COPY_ICON; }, 1500);
+            } catch (err) { 
+                console.error('Failed to copy text: ', err);
+            }
+        };
+        iconElement.addEventListener('click', copyAction);
+    }
+
+    async function fetchWithTimeout(resource, options = {}, timeout = 7000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        options.signal = controller.signal;
+        try {
+            const response = await fetch(resource, options); 
+            clearTimeout(id); 
+            return response;
+        } catch (error) { 
+            clearTimeout(id); 
+            throw error; 
+        }
+    }
+    
+    function updateCellValue(valueElementId, valueForDisplay, valueForCopy, isError = false, isLoading = false) {
+        const element = document.getElementById(valueElementId);
+        if (!element) return;
+        const cellElement = element.closest('.info-cell'); 
+
+        if (isLoading) {
+            element.innerHTML = `<span class="loading-text">Loading...</span>`;
+            element.className = 'cell-value loading';
+            element.dataset.copyValue = ''; 
+            if (cellElement) cellElement.classList.remove('icon-active');
+        } else if (isError) {
+            element.innerHTML = `<span class="error-message">${valueForDisplay || 'Error'}</span>`;
+            element.className = 'cell-value error-state'; 
+            element.dataset.copyValue = ''; 
+            if (cellElement) cellElement.classList.remove('icon-active');
+        } else {
+            element.textContent = valueForDisplay || 'N/A';
+            element.dataset.copyValue = valueForCopy || (valueForDisplay === 'N/A' ? 'N/A' : '');
+            element.className = 'cell-value';
+            
+            const uncopyableValues = ['N/A', 'Unknown', 'Could not determine', 'Unavailable', 'Unavailable (DNS)', '', 'I\'ll do it later (or not)'];
+            if (cellElement && valueForCopy && !uncopyableValues.includes(valueForCopy)) {
+                cellElement.classList.add('icon-active');
+            } else if (cellElement) {
+                cellElement.classList.remove('icon-active');
+            }
+        }
+    }
+
+    async function fetchIP(valueElementId, ipType) {
+        const url = ipType === 'ipv4' ? 'https://ipv4.icanhazip.com' : 'https://ipv6.icanhazip.com';
+        updateCellValue(valueElementId, null, null, false, true); 
+        try {
+            const response = await fetchWithTimeout(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const ip = (await response.text()).trim();
+            let isValid = (ipType === 'ipv4') ? /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) : (ip.includes(':') && ip.length >= 3);
+            if (isValid) { 
+                updateCellValue(valueElementId, ip, ip);
+            } else { 
+                throw new Error('Invalid IP format'); 
+            }
+        } catch (error) {
+            const isDnsFailureForIPv6 = ipType === 'ipv6' && error.message.toLowerCase().includes('err_name_not_resolved');
+            const errorMessage = isDnsFailureForIPv6 ? 'Unavailable (DNS)' : (ipType === 'ipv6' ? 'Unavailable' : 'Could not determine');
+            updateCellValue(valueElementId, errorMessage, '', true, false);
+        }
+    }
+
+    function getFlagEmoji(countryCode) {
+        if (!countryCode || countryCode.length !== 2) return '';
+        try {
+            const codePoints = countryCode.toUpperCase().split('').map(char => 0x1F1E6 + (char.charCodeAt(0) - 0x41));
+            return String.fromCodePoint(...codePoints);
+        } catch (e) { return ''; }
+    }
+
+    async function fetchGeoData() {
+        const locationValueElId = 'locationValue';
+        const locationPrefixIconEl = document.getElementById('locationPrefixIcon');
+        
+        updateCellValue(locationValueElId, null, null, false, true);
+        if (locationPrefixIconEl) locationPrefixIconEl.textContent = '';
+
+        try { 
+            const response = await fetchWithTimeout('https://ipwho.is/');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            if (data.success === false) throw new Error('API error');
+
+            const city = data.city || ''; 
+            const countryFullName = data.country || '';
+            const countryCode = data.country_code || '';
+            const flag = getFlagEmoji(countryCode);
+
+            if (locationPrefixIconEl) locationPrefixIconEl.textContent = flag;
+            
+            let locationString = 'N/A';
+            if (city && countryFullName) locationString = `${city}, ${countryFullName}`;
+            else if (city) locationString = city; 
+            else if (countryFullName) locationString = countryFullName;
+            
+            updateCellValue(locationValueElId, locationString, locationString);
+        } catch (error) {
+            updateCellValue(locationValueElId, 'Error', '', true);
+            if (locationPrefixIconEl) locationPrefixIconEl.textContent = '⚠️';
+            console.error('Error fetching location data:', error);
+        }
+    }
+
+    async function displayBrowserAndOSInfo() {
+        const browserValueElId = 'browserValue';
+        const osValueElId = 'osValue';
+        
+        updateCellValue(browserValueElId, null, null, false, true);
+        updateCellValue(osValueElId, null, null, false, true);
+
+        let browserName, browserVersion, osName, osVersion;
+        try {
+            if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+                const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "fullVersionList"]);
+                osName = highEntropyValues.platform || null; 
+                osVersion = highEntropyValues.platformVersion || null;
+                if (highEntropyValues.fullVersionList && highEntropyValues.fullVersionList.length > 0) {
+                    let primaryEntry = highEntropyValues.fullVersionList.find(e => e.brand === "Microsoft Edge") ||
+                                       highEntropyValues.fullVersionList.find(e => e.brand === "Google Chrome") ||
+                                       highEntropyValues.fullVersionList.find(e => e.brand === "Opera") ||
+                                       highEntropyValues.fullVersionList.find(e => !e.brand.toLowerCase().includes("not") && !e.brand.toLowerCase().includes("chromium"));
+                    if (primaryEntry) { 
+                        browserName = primaryEntry.brand; 
+                        browserVersion = primaryEntry.version; 
+                    }
+                }
+            }
+        } catch (uachError) { 
+            console.warn('Could not get UA Client Hints:', uachError); 
+        }
+
+        if (!browserName || !osName || !browserVersion || !osVersion) {
+            if (typeof UAParser === 'undefined') {
+                updateCellValue(browserValueElId, 'Error (Lib missing)', '', true); 
+                updateCellValue(osValueElId, 'Error (Lib missing)', '', true);
+                console.error('UAParser library not loaded.'); 
+                return;
+            }
+            try {
+                const parser = new UAParser(navigator.userAgent); 
+                const result = parser.getResult();
+                if (!browserName && result.browser && result.browser.name) { 
+                    browserName = result.browser.name; 
+                    browserVersion = result.browser.version; 
+                }
+                if (!osName && result.os && result.os.name) { 
+                    osName = result.os.name; 
+                    osVersion = result.os.version; 
+                }
+            } catch (parseError) {
+                updateCellValue(browserValueElId, null, '', true); 
+                updateCellValue(osValueElId, null, '', true);
+                console.error('Error parsing UA string with UAParser:', parseError); 
+                return;
+            }
+        }
+        const browserFullString = `${browserName || 'Unknown'} ${browserVersion || ''}`.trim();
+        const osFullString = `${osName || 'Unknown'} ${osVersion || ''}`.trim();
+
+        updateCellValue(browserValueElId, browserFullString, browserFullString);
+        updateCellValue(osValueElId, osFullString, osFullString);
+    }
+
+    window.onload = async () => {
+        if (document.getElementById('browserCompatibilityMessage').style.display === 'block') return;
+        
+        fetchIP('ipv4Value', 'ipv4');
+        fetchIP('ipv6Value', 'ipv6');
+        fetchGeoData(); 
+        
+        try { 
+            await displayBrowserAndOSInfo(); 
+        } catch(e) {
+            updateCellValue('browserValue', null, '', true); 
+            updateCellValue('osValue', null, '', true);
+            console.error('Error displaying browser/OS info:', e);
+        }
+        
+        const copyableCells = [
+            { cell: 'ipv4Cell', value: 'ipv4Value', icon: 'ipv4CopyIcon' }, 
+            { cell: 'ipv6Cell', value: 'ipv6Value', icon: 'ipv6CopyIcon' },
+            { cell: 'locationCell', value: 'locationValue', icon: 'locationCopyIcon' },
+            { cell: 'providerCell', value: 'providerValue', icon: 'providerCopyIcon' },
+            { cell: 'browserCell', value: 'browserValue', icon: 'browserCopyIcon' }, 
+            { cell: 'osCell', value: 'osValue', icon: 'osCopyIcon' }
+        ];
+        copyableCells.forEach(field => makeCopyable(field.cell, field.value, field.icon));
+    };
+})();
+    </script>
 </body>
 </html>
